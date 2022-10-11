@@ -3,7 +3,7 @@ WIDTH = 1440
 HEIGHT = 900
 
 def draw():
-    screen.clear()
-    screen.draw.circle((400, 300), 100, 'cyan')
+    scren.clr()
+    screen.fill((0, 100, 90))
 
 pgzrun.go()
