@@ -9,6 +9,7 @@ import pygame
 WIDTH = 1024
 HEIGHT = 768
 
+score = 0
 
 # *** player ***
 
@@ -27,8 +28,9 @@ food_speed = [0, 240] # 0 en x car ne va ni vers la gauche(-n) ni droite(n posit
 
 # *** darkmatter poop ***
 
-poop = Actor("darkmatter")
-poop.pos = [WIDTH/2 -30, HEIGHT/2]
+poop = Actor("darkmatter", anchor= ['center', 'bottom'])
+
+poop.pos = (player.pos[0] -100, player.pos[1])  # WIDTH/2 -30, HEIGHT-5
 
 
 # *** ok food collision with player ***
@@ -39,26 +41,28 @@ poop.pos = [WIDTH/2 -30, HEIGHT/2]
 
 # *** functions ***
 
-def draw():
+def draw(): 
+    global food # mis la variable globale, car error de call before assignement de food
+
     # si je veux fullscreen sans pouvoir en sortir :    screen.surface = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)
 
     screen.clear()
     screen.fill((1, 7, 46))
     screen.draw.text(f"F11 : Fullscreen\nESC : Exit Fullscreen", (10, 15), color=(255,255,255), fontsize=15)
+    screen.draw.text(str(score), (WIDTH/2, images.planet_express.get_height()), color=(255,255,255), fontsize=40)
 
     player.draw()
     for food in food_list: 
         food.draw()
     
-    if player.collidepoint(food):
-        set_player_eat_then_poop()
+    if player.colliderect(food): # erreur ici car pas collidepoint mais colliderect !
         poop.draw()
 
 def random_pos():
-    image_width = 64 # taille food sprite
+    image_width = 64 # food sprite size
     image_heigth = 64
     modifier = max(image_width, image_heigth) / 2
-    x = randint(modifier, WIDTH - modifier)
+    x = randint(modifier, WIDTH - 200) # pas WIDTH- modifier car ici on veut que le food s'arrête aussi WIDTH-200 comme le player, pour qu'il puisse manger tout, et que ça n'aparaisse pas là où Bender apparaîtra
     y = 0
     return [x, y]
 
@@ -80,7 +84,7 @@ def update(dt):
     
     pos = player.pos
 
-    global food_time, food
+    global food_time, food, score
 
     food_time -= dt # dt = changement du temps
     if food_time <= 0.0:
@@ -90,8 +94,6 @@ def update(dt):
         food_time = randint(1,3)
     pos= food.pos
 
-# *** darkmatter generating ***
-    # set_player_eat_then_poop()
 
 # *** collision with player and/or bottom screen ***
     mvt_x = food_speed[0] * dt
@@ -102,11 +104,14 @@ def update(dt):
 
         if player.colliderect(food): 
             food_list.remove(food)
+            score += 100
+# *** darkmatter generating ***
+            set_player_eat_then_poop()
+            
 
         elif food.pos[1] >= HEIGHT -10:
             food_list.remove(food)
             # pas de break car dans le casse-brique, touche une brique à la foi, ici, plusieurs food peuvent collide
-
 
 
 def on_mouse_move(pos): 
@@ -128,12 +133,14 @@ def on_key_down(key):
 
 def set_player_eat_then_poop():
     player.image = 'nibbler_yay'
-    clock.schedule_unique(set_player_normal, 1.0)
+    clock.schedule_interval(set_player_normal, 1)
     
-
 
 def set_player_normal():
     player.image = 'nibbler_idle'
+
+
+
 
 
 pgzrun.go()
