@@ -20,8 +20,8 @@ player.pos = [WIDTH/2, HEIGHT]
 food_time = 0
 food_list = []
 foodname = []
-for food_file in listdir(r'images/all-food'):
-    if isfile(r'images/all-food/' + food_file):
+for food_file in listdir(r'images/all_food'):
+    if isfile(r'images/all_food/' + food_file):
         foodname.append(food_file)
 
 food_speed = [0, 240] # 0 en x car ne va ni vers la gauche(-n) ni droite(n positif). En y nombre positif car va vers le bas. Si négatif, va vers le haut
@@ -88,7 +88,7 @@ def update(dt):
 
     food_time -= dt # dt = changement du temps
     if food_time <= 0.0:
-        food = Actor('all-food/' + choice(foodname), anchor= ['center', 'top']) # à mettre dans update
+        food = Actor('all_food/' + choice(foodname), anchor= ['center', 'top']) # à mettre dans update
         food.pos = random_pos()
         food_list.append(food)
         food_time = randint(1,3)
@@ -104,6 +104,7 @@ def update(dt):
 
         if player.colliderect(food): 
             food_list.remove(food)
+            # scoring method in lists of foodname list ?
             score += 100
 # *** darkmatter generating ***
             set_player_eat_then_poop()
@@ -138,9 +139,5 @@ def set_player_eat_then_poop():
 
 def set_player_normal():
     player.image = 'nibbler_idle'
-
-
-
-
 
 pgzrun.go()
