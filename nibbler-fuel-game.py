@@ -1,19 +1,28 @@
 import pgzrun
+from pgzhelper import *
 from random import randint, choice
 from os import listdir
 from os.path import isfile
 import pygame
+#from pgzero.actor import Actor
+
 
 
 WIDTH = 1440
 HEIGHT = 900
+ROTATION_SPEED = 80
 
 
 game_over = False
 score = 0
 # pour les différents scores, p-e que je devrais faire des sous-dossiers, et faire un dirlist.
+malus = 300
+combo = 0
+food_value_score_visible = False
+enemy_value_score_visible = False
 pause = False
 fullscreen = True
+
 
 background = Actor("space_planet_left")
 
@@ -22,6 +31,8 @@ background = Actor("space_planet_left")
 
 player = Actor("nibbler_idle", anchor= ['center', 'bottom']) # center, bottom serait mieux ? ou bottom, middle ?
 player.pos = [WIDTH/2, HEIGHT]
+
+
 
 # *** food ***
 food_time = 0
@@ -33,21 +44,60 @@ for food_file in listdir(r'images/all_food'):
 
 food_speed = [0, 240] # 0 en x car ne va ni vers la gauche(-n) ni droite(n positif). En y nombre positif car va vers le bas. Si négatif, va vers le haut
 
-#*** Fotran Beer = Enemy ***
-enemy_time = 0
+#*** Enemy = Fotran Beer ***
+enemy_time = randint(10, 15) # temps avant le premier
 enemy_list = []
 enemy_speed = [0, 240]
 
 
-# *** Enemy Action ***
+# *** Enemy Action = Bender ***
 enemy_action = Actor("bender_idle", anchor=['center', 'bottom'])
 enemy_action.pos = [WIDTH -66, HEIGHT]
 enemy_action_visible = False
 
+# *** Enemy trigger = wrench ***
+enemy_action_trigger = Actor("wrench_resized")
+enemy_action_trigger_visible = False
+enemy_action_trigger_maxspeed = 350
+enemy_action_trigger_speed = [-enemy_action_trigger_maxspeed, 0]
+enemy_action_trigger_time = 0
+
+
 # *** darkmatter poop ***
 
-poop = Actor("darkmatter", anchor= ['center', 'bottom'])
+poop = Actor("darkmatter_rotated", anchor= ['center', 'bottom'])
 poop_visible = False
+
+class Ship :
+    def __init__(self):
+        self.sprite=Actor('planet_express', anchor= ['right', 'top'])
+        self.sprite.scale = 0.33
+        self.sprite.pos = (WIDTH, 0)
+        self.direction = [-1, 0]
+        self.speed = 10
+        self.boostspeed = 30
+        self.boostspeed_timer = 0
+        self.move_timer = 0
+    
+    
+    def move(self, dt):
+        if self.move_timer > 0 :
+            self.move_timer -= dt
+
+            x = self.sprite.pos[0] + self.speed * self.direction[0] * dt
+            y = self.sprite.pos[1] + self.speed * self.direction[1] * dt
+            self.sprite.pos = [x , y]
+            
+
+    def draw(self):
+        self.sprite.draw()
+        
+    def decelerate(self):
+        self.speed /= 2
+        self.boostspeed /= 2
+        
+
+ship = Ship() #crée l'instance
 
 
 # *** functions ***
@@ -81,6 +131,7 @@ def draw(): # ce qui est dans le draw, ne doit que draw. On peut mettre des if (
 
 
     player.draw()
+    ship.draw()
 
     for food in food_list: 
         food.draw()
@@ -91,22 +142,20 @@ def draw(): # ce qui est dans le draw, ne doit que draw. On peut mettre des if (
     # *** bender appear (ennemy_action)***
     if enemy_action_visible:
         enemy_action.draw()
+        enemy_action_trigger.draw()
 
-    
     # *** game pause ***
     if pause == True :
-         screen.draw.text("Game Paused", center=(WIDTH/2, HEIGHT/2), color="cyan", gcolor="magenta", owidth=0.25, ocolor="grey", fontsize=100, fontname="ocraext")
+        screen.draw.text("Game Paused", center=(WIDTH/2, HEIGHT/2), color="cyan", gcolor="magenta", owidth=0.25, ocolor="grey", fontsize=100, fontname="ocraext")
 
     # *** Scoring draw ***
     # *** global score ***
-    if player.colliderect(food): 
-        screen.draw.text("100", center=(player.pos[0], HEIGHT/2), color="white",gcolor="yellow", fontsize= 20)
+    if food_value_score_visible: 
+        screen.draw.text("100", center=((player.pos[0]+30), (player.pos[1]-player.height-10)), color="white",gcolor="yellow", fontsize= 35)
 
     # *** hurt score *** error, surerpose le score global !!!
-    for enemy in enemy_list:
-        if player.colliderect(enemy):
-            screen.draw.text("-200", (WIDTH/2, (player.pos[1]-20)), color="white",gcolor="red", fontsize= 18)
-            break # car il collide qu'un à la fois
+    if enemy_value_score_visible:
+        screen.draw.text("-200", center=((player.pos[0]+30), (player.pos[1]-player.height-10)), color="white", gcolor="red", fontsize= 35)
 
 def random_pos():
     image_width = 64 # food sprite size
@@ -126,20 +175,19 @@ def random_pos_enemy():
     return [x, y]
 
 
-def food_update(dt):
-    global food_time, food, score
+def food_update(dt):  #delta time = (la différence de temps) le temps qui s'est passé depuis la précédente update (1/60e de seconde)
+    global food_time, food, score, food_value_score_visible, enemy_value_score_visible, combo
 
     food_time -= dt # dt = changement du temps
-    if food_time <= 0.0:
+    if food_time <= 0.0: # quand le sablier est vide ou en dessous de 0
         food = Actor('all_food/' + choice(foodnames), anchor= ['center', 'top']) # à mettre dans update
         food.pos = random_pos()
         food_list.append(food)
         food_time = randint(1,3)
-    pos= food.pos
-
+        pos= food.pos
 
     # *** collision with player and/or bottom screen ***
-    mvt_x = food_speed[0] * dt
+    mvt_x = food_speed[0] * dt #* 1/60e de sec
     mvt_y = food_speed[1] * dt
 
     # *** ok food collision with player ***
@@ -149,26 +197,33 @@ def food_update(dt):
 
         if player.colliderect(food): 
             food_list.remove(food)
+            sounds.munch.play()
             score += 100
+            food_value_score_visible = True
+            clock.schedule_interval(set_food_value_score, 0.7)
+            ship.move_timer = 1
+            combo += 1
+            # if combo % 3 == 0 :   règle si par incrémentation de 3
+            # sinon que des if elif
+                
 
     # *** darkmatter generating ***
             set_player_eat_then_poop()
-            
 
         elif food.pos[1] >= HEIGHT -10:
             food_list.remove(food)
             # pas de break car dans le casse-brique, touche une brique à la foi, ici, plusieurs food peuvent collide
 
+
 def enemy_update(dt):
-    global enemy_time, enemy, score
+    global enemy_time, enemy, score, enemy_value_score_visible, enemy_action_trigger_visible, enemy_action_trigger_speed, malus
 
     enemy_time -= dt 
     if enemy_time <= 0.0:
         enemy = Actor("fortran_beer", anchor=['center', 'top'])
         enemy.pos = random_pos_enemy()
-
         enemy_list.append(enemy)
-        enemy_time = randint(5,10)
+        enemy_time = randint(5,10) #ne fonctionne pas, apparait direct !
         pos = enemy.pos
 
       # *** enemy collision with player ***
@@ -179,10 +234,30 @@ def enemy_update(dt):
         enemy.pos = [enemy.pos[0] + mvt_x, enemy.pos[1] + mvt_y]        
         if player.colliderect(enemy):
             enemy_list.remove(enemy)
-            score -= 200
+            sounds.glug_glug_glug.play()
+            score -= malus
             set_enemy_action_animate()
+            enemy_value_score_visible = True
+            clock.schedule_interval(set_enemy_value_score, 0.7)
+            enemy_action_trigger_visible = True
+            enemy_action_trigger_speed = [-enemy_action_trigger_maxspeed,0]
+            enemy_action_trigger.pos = [WIDTH -66, HEIGHT-player.height]
         if enemy.pos[1] >= HEIGHT -10:
             enemy_list.remove(enemy)
+
+def enemy_action_trigger_update(dt):
+    global enemy_action_trigger, enemy_action_trigger_speed, enemy_action_trigger_visible, enemy_action_trigger_time, ROTATION_SPEED
+
+    mvt_x = enemy_action_trigger_speed[0] * dt
+    mvt_y = enemy_action_trigger_speed[1] * dt
+    enemy_action_trigger.angle += ROTATION_SPEED * dt
+
+    enemy_action_trigger.pos = [enemy_action_trigger.pos[0] + mvt_x, enemy_action_trigger.pos[1] + mvt_y]
+    if player.colliderect(enemy_action_trigger):
+        #enemy_action_trigger_visible = False
+        sounds.slap_umph.play()
+        enemy_action_trigger_speed = [0,enemy_action_trigger_maxspeed]
+        
 
 
 def update(dt):
@@ -212,7 +287,9 @@ def update(dt):
 
     food_update(dt)
     enemy_update(dt)
-   
+    if enemy_action_trigger_visible == True:
+        enemy_action_trigger_update(dt)
+    ship.move(dt)
 
 def on_mouse_move(pos): 
     if pos[0] > 50 and pos[0] < WIDTH - 200 : #largeur et hauteur sprite = 296
@@ -224,6 +301,7 @@ def on_mouse_move(pos):
 
     y = player.pos[1]
     player.pos = [x, y]
+
 
 def on_key_down(key):
     global pause, fullscreen
@@ -237,6 +315,7 @@ def on_key_down(key):
     elif key == keys.SPACE:
         pause = not pause
         
+
 def set_enemy_action_animate():
     global enemy_action_visible
     enemy_action.image = 'bender_yay'
@@ -244,6 +323,7 @@ def set_enemy_action_animate():
     clock.schedule_interval(set_enemy_action_normal, 1)
     enemy_action_visible = True
     enemy_action.pos = (WIDTH-66, HEIGHT)
+
 
 def set_enemy_action_normal():
     enemy_action.image = 'bender_idle'
@@ -259,6 +339,17 @@ def set_player_eat_then_poop():
 
 def set_player_normal():
     player.image = 'nibbler_idle'
+
+
+def set_food_value_score():
+    global food_value_score_visible
+    food_value_score_visible = False
+
+
+def set_enemy_value_score():
+    global enemy_value_score_visible
+    enemy_value_score_visible = False
+
 
     
 
