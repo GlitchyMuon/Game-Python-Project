@@ -1,3 +1,4 @@
+from queue import LifoQueue
 import pgzrun
 from pgzhelper import *
 from random import randint, choice
@@ -11,6 +12,8 @@ import pygame
 WIDTH = 1440
 HEIGHT = 900
 ROTATION_SPEED = 80
+WHITE = 255, 255, 255
+BOX = Rect((15, 100, 200, 50))
 
 
 game_over = False
@@ -28,11 +31,13 @@ background = Actor("space_planet_left")
 
 
 # *** player ***
+class Player(Actor):
+    def __init__(self):
+        super().__init__("nibbler_idle", anchor= ['center', 'bottom'])
+        self.pos = [WIDTH/2, HEIGHT]
+        self.life = 1800
 
-player = Actor("nibbler_idle", anchor= ['center', 'bottom']) # center, bottom serait mieux ? ou bottom, middle ?
-player.pos = [WIDTH/2, HEIGHT]
-
-
+player = Player()
 
 # *** food ***
 food_time = 0
@@ -68,16 +73,18 @@ enemy_action_trigger_time = 0
 poop = Actor("darkmatter_rotated", anchor= ['center', 'bottom'])
 poop_visible = False
 
-class Ship :
+class Ship : # ou Ship(Actor)
     def __init__(self):
-        self.sprite=Actor('planet_express', anchor= ['right', 'top'])
-        self.sprite.scale = 0.33
+        self.sprite=Actor('planet_express', anchor= ['right', 'top'])   #super().__init__('planet_express', anchor= ['right', 'top'])
+        self.sprite.scale = 0.33    # pas besoin de mettre 'sprite.' si méthode héritage
         self.sprite.pos = (WIDTH, 0)
         self.direction = [-1, 0]
         self.speed = 10
         self.boostspeed = 30
         self.boostspeed_timer = 0
         self.move_timer = 0
+        self.burstflamesprite = Actor('small_burst', anchor=['left','top'])
+        self.burstflamesprite.pos = (self.sprite.pos[0], 0)
     
     
     def move(self, dt):
@@ -123,7 +130,8 @@ def draw(): # ce qui est dans le draw, ne doit que draw. On peut mettre des if (
     # screen.fill((1, 7, 46)) si pas de background
     background.draw()
     screen.draw.text(f"F11 : Fullscreen\nESC : Exit Fullscreen\nPause : Spacebar", (10, 15), color=(255,255,255), fontsize=15)
-    screen.draw.text(str(score), (WIDTH/2, images.planet_express.get_height()), color=(255,255,255), gcolor="green", fontsize=40)
+    screen.draw.rect(BOX, WHITE)
+    screen.draw.textbox(str(score), (15, 100, 200, 50), color=(255,255,255), gcolor="green")
     
     if poop_visible:
         poop.draw()
@@ -132,6 +140,7 @@ def draw(): # ce qui est dans le draw, ne doit que draw. On peut mettre des if (
 
     player.draw()
     ship.draw()
+   # player.life.draw()
 
     for food in food_list: 
         food.draw()
@@ -153,7 +162,7 @@ def draw(): # ce qui est dans le draw, ne doit que draw. On peut mettre des if (
     if food_value_score_visible: 
         screen.draw.text("100", center=((player.pos[0]+30), (player.pos[1]-player.height-10)), color="white",gcolor="yellow", fontsize= 35)
 
-    # *** hurt score *** error, surerpose le score global !!!
+    # *** hurt score *** 
     if enemy_value_score_visible:
         screen.draw.text("-200", center=((player.pos[0]+30), (player.pos[1]-player.height-10)), color="white", gcolor="red", fontsize= 35)
 
@@ -320,9 +329,10 @@ def set_enemy_action_animate():
     global enemy_action_visible
     enemy_action.image = 'bender_yay'
     enemy_action.image = 'bender_action'
-    clock.schedule_interval(set_enemy_action_normal, 1)
+    clock.schedule_interval(set_enemy_action_normal, 0.7)
     enemy_action_visible = True
     enemy_action.pos = (WIDTH-66, HEIGHT)
+    clock.schedule_interval(set_enemy_action_invisible, 1) 
 
 
 def set_enemy_action_normal():
@@ -349,6 +359,11 @@ def set_food_value_score():
 def set_enemy_value_score():
     global enemy_value_score_visible
     enemy_value_score_visible = False
+
+def set_enemy_action_invisible():
+    global enemy_action_visible
+    enemy_action_visible = False
+    # là il disparait trop abruptement : amélioration -> le déplacer hors de l'écran et le faire remove.
 
 
     
