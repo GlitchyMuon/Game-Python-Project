@@ -5,7 +5,8 @@ from random import randint, choice
 from os import listdir
 from os.path import isfile
 import pygame
-#from pgzero.actor import Actor
+#from pgzero.builtins import Actor, animate, Rect, images, clock, sounds
+#si j'importe tout ci-dessus : n'affiche plus de surlignage rouge mais le scale ne fonctionne plus sur le ship étrangement
 
 
 
@@ -75,16 +76,17 @@ poop_visible = False
 
 class Ship : # ou Ship(Actor)
     def __init__(self):
-        self.sprite=Actor('planet_express', anchor= ['right', 'top'])   #super().__init__('planet_express', anchor= ['right', 'top'])
+        self.sprite=Actor('planet_express', anchor= ['right', 'center'])   #super().__init__('planet_express', anchor= ['right', 'center'])
         self.sprite.scale = 0.33    # pas besoin de mettre 'sprite.' si méthode héritage
-        self.sprite.pos = (WIDTH, 0)
+        self.sprite.pos = (WIDTH, images.planet_express.get_height()*0.33-33)
         self.direction = [-1, 0]
         self.speed = 10
         self.boostspeed = 30
         self.boostspeed_timer = 0
         self.move_timer = 0
-        self.burstflamesprite = Actor('small_burst', anchor=['left','top'])
-        self.burstflamesprite.pos = (self.sprite.pos[0], 0)
+        self.burstflamesprite = Actor('small_burst', anchor=['left','center'])
+        self.burstflamesprite.scale = 0.50
+        self.burstflamesprite.pos = (self.sprite.pos[0], self.sprite.pos[1])
     
     
     def move(self, dt):
@@ -94,10 +96,12 @@ class Ship : # ou Ship(Actor)
             x = self.sprite.pos[0] + self.speed * self.direction[0] * dt
             y = self.sprite.pos[1] + self.speed * self.direction[1] * dt
             self.sprite.pos = [x , y]
+        self.burstflamesprite.pos = (self.sprite.pos[0], self.sprite.pos[1])
             
 
     def draw(self):
         self.sprite.draw()
+        self.burstflamesprite.draw()
         
     def decelerate(self):
         self.speed /= 2
@@ -114,10 +118,10 @@ def draw(): # ce qui est dans le draw, ne doit que draw. On peut mettre des if (
 
     # si je veux fullscreen sans pouvoir en sortir :    screen.surface = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)
     
-    #    if game_over:
+    #  if game_over:
         #screen.clear()
-        #screen.draw.text('Game Over', (350,270), color=(255,255,255), fontsize=30)
-        #screen.draw.text('Score: ' + str(round(score)), (350,330), color=(255,255,255), fontsize=30)
+        #screen.draw.text('Game Over', (WIDTH/2, HEIGHT/2), color="red", gcolor="yellow", owidth=0.25, ocolor="grey", fontsize=100)
+        #screen.draw.text('Score: ' + str(round(score)), (WIDTH/2, HEIGHT/2+10), color="gold", owidth=0.25, ocolor="grey", fontsize=50)
     #else:
 
     # fullscreen dans le draw absolument 
@@ -185,7 +189,7 @@ def random_pos_enemy():
 
 
 def food_update(dt):  #delta time = (la différence de temps) le temps qui s'est passé depuis la précédente update (1/60e de seconde)
-    global food_time, food, score, food_value_score_visible, enemy_value_score_visible, combo
+    global food_time, food, score, food_value_score_visible, enemy_value_score_visible, combo, poop
 
     food_time -= dt # dt = changement du temps
     if food_time <= 0.0: # quand le sablier est vide ou en dessous de 0
@@ -209,7 +213,7 @@ def food_update(dt):  #delta time = (la différence de temps) le temps qui s'est
             sounds.munch.play()
             score += 100
             food_value_score_visible = True
-            clock.schedule_interval(set_food_value_score, 0.7)
+            clock.schedule_interval(set_food_value_score, 0.8)
             ship.move_timer = 1
             combo += 1
             # if combo % 3 == 0 :   règle si par incrémentation de 3
@@ -222,6 +226,13 @@ def food_update(dt):  #delta time = (la différence de temps) le temps qui s'est
         elif food.pos[1] >= HEIGHT -10:
             food_list.remove(food)
             # pas de break car dans le casse-brique, touche une brique à la foi, ici, plusieurs food peuvent collide
+
+    if poop_visible:
+        poop.move_towards(ship.sprite, 1020*dt) # *dt donne la vitesse dans ce cas-ci
+        #if ship.sprite.collidepoint(poop):
+            #pygame.Surface.set_alpha(poop, 0)
+
+
 
 
 def enemy_update(dt):
@@ -247,7 +258,7 @@ def enemy_update(dt):
             score -= malus
             set_enemy_action_animate()
             enemy_value_score_visible = True
-            clock.schedule_interval(set_enemy_value_score, 0.7)
+            clock.schedule_interval(set_enemy_value_score, 0.8)
             enemy_action_trigger_visible = True
             enemy_action_trigger_speed = [-enemy_action_trigger_maxspeed,0]
             enemy_action_trigger.pos = [WIDTH -66, HEIGHT-player.height]
@@ -265,7 +276,8 @@ def enemy_action_trigger_update(dt):
     if player.colliderect(enemy_action_trigger):
         #enemy_action_trigger_visible = False
         sounds.slap_umph.play()
-        enemy_action_trigger_speed = [0,enemy_action_trigger_maxspeed]
+        enemy_action_trigger_speed = [0, enemy_action_trigger_maxspeed]
+        enemy_action.move_back(-132)  #important de le mettre ici sinon il reste en dehors de l'écran !
         
 
 
@@ -300,6 +312,8 @@ def update(dt):
         enemy_action_trigger_update(dt)
     ship.move(dt)
 
+
+
 def on_mouse_move(pos): 
     if pos[0] > 50 and pos[0] < WIDTH - 200 : #largeur et hauteur sprite = 296
         x = pos[0]
@@ -332,7 +346,9 @@ def set_enemy_action_animate():
     clock.schedule_interval(set_enemy_action_normal, 0.7)
     enemy_action_visible = True
     enemy_action.pos = (WIDTH-66, HEIGHT)
-    clock.schedule_interval(set_enemy_action_invisible, 1) 
+    #clock.schedule_interval(set_enemy_action_invisible, 1.50)  --code si je ne le déplace pas.-- bug de collide avec poop qui va vers ship
+    
+
 
 
 def set_enemy_action_normal():
