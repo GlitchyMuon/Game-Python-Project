@@ -1,4 +1,5 @@
-from queue import LifoQueue
+from turtle import left
+from keyboard import KEY_DOWN, KeyboardEvent
 import pgzrun
 from pgzhelper import *
 from random import randint, choice
@@ -30,6 +31,26 @@ fullscreen = True
 
 background = Actor("space_planet_left")
 
+class Menu():
+    def __init__(self):
+        self.background = Actor('space_planet_bottom')
+        self.icon = Actor('nibbler_spaceship')
+        self.icon.size= (500, 500)
+        self.icon.pos = (WIDTH/2, HEIGHT/2)
+        self.welcome_txt = "Welcome to Space Gobbler !"
+        #self.welcome_txt.pos = (WIDTH/2, (self.icon.pos[1]-30))     pos is not recognized because str
+        self.title_txt = "Press any key"
+
+    def draw(self):
+        self.background.draw()
+        self.icon.draw()
+    
+    #def update(self, dt):
+    
+        
+menu = Menu()
+menu_visible = True
+
 
 # *** player ***
 class Player(Actor):
@@ -39,6 +60,15 @@ class Player(Actor):
         self.life = 1800
 
 player = Player()
+
+# *** player life actor ***
+heart1 = Actor('heart_full')
+heart1.pos = [20, 20]
+heart2 = Actor('heart_full')
+heart2.pos = [(heart1.pos[0]+41), 20]
+heart3 = Actor('heart_full')
+heart3.pos = [(heart2.pos[0]+41), 20]
+
 
 # *** food ***
 food_time = 0
@@ -70,8 +100,25 @@ enemy_action_trigger_time = 0
 
 
 # *** darkmatter poop ***
+poop_list = []
 
-poop = Actor("darkmatter_rotated", anchor= ['center', 'bottom'])
+class Poop(Actor):
+    def __init__(self):
+        super().__init__("darkmatter_rotated", anchor= ['center', 'bottom'])
+        
+    def update(self, dt):
+        self.move_towards(ship.sprite, 1020*dt) # *dt donne la vitesse dans ce cas-ci
+        if ship.sprite.colliderect(self):
+            #juste comme ça si on veut remove de la liste aprèsn un collide
+            poop_list.remove(self)
+            # si je veux shrink :
+            #if self.scale >= 0 :
+                #self.scale -= 2 *dt
+
+
+        
+poop = Poop()
+
 poop_visible = False
 
 class Ship : # ou Ship(Actor)
@@ -113,7 +160,18 @@ ship = Ship() #crée l'instance
 
 # *** functions ***
 
-def draw(): # ce qui est dans le draw, ne doit que draw. On peut mettre des if (pas gérer de collision, ni update)
+def draw_menu():
+    screen.clear()
+    menu.draw()
+
+    screen.draw.text(f"F11 : Fullscreen\nESC : Exit Fullscreen\nPause : Spacebar", (10, 15), color=(255,255,255), fontsize=16, fontname="retro gaming")
+
+    screen.draw.text(menu.welcome_txt, center=(WIDTH/2, (HEIGHT/2-300)), color="cyan", gcolor="magenta", owidth=0.25, ocolor="grey", fontsize=80, fontname="ocraext")
+
+    screen.draw.text(menu.title_txt, center =(WIDTH/2, (HEIGHT-100)), color="purple", gcolor='blue', owidth=0.25, ocolor="grey", fontsize= 30, fontname ="1up")
+
+
+def draw_game(): # ce qui est dans le draw, ne doit que draw. On peut mettre des if (pas gérer de collision, ni update)
     global food # mis la variable globale, car error de call before assignement de food
 
     # si je veux fullscreen sans pouvoir en sortir :    screen.surface = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)
@@ -124,27 +182,48 @@ def draw(): # ce qui est dans le draw, ne doit que draw. On peut mettre des if (
         #screen.draw.text('Score: ' + str(round(score)), (WIDTH/2, HEIGHT/2+10), color="gold", owidth=0.25, ocolor="grey", fontsize=50)
     #else:
 
-    # fullscreen dans le draw absolument 
-    if fullscreen:
-        screen.surface = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)
-    else:
-        screen.surface = pygame.display.set_mode((WIDTH, HEIGHT))
-
     screen.clear() # à mettre dans le if game_over
     # screen.fill((1, 7, 46)) si pas de background
     background.draw()
-    screen.draw.text(f"F11 : Fullscreen\nESC : Exit Fullscreen\nPause : Spacebar", (10, 15), color=(255,255,255), fontsize=15)
+
     screen.draw.rect(BOX, WHITE)
+
     screen.draw.textbox(str(score), (15, 100, 200, 50), color=(255,255,255), gcolor="green")
     
-    if poop_visible:
+    for poop in poop_list :
         poop.draw()
     # si je veux qu'il apparaisse derrière le player, il faut qu'il soit draw avant le player. Car dans le draw, les derniers élements superposent les précédents
 
 
     player.draw()
     ship.draw()
-   # player.life.draw()
+
+    # *** player life hearts draw ***
+
+    if player.life == 1800 :
+        heart3.image = 'heart_full'
+    elif player.life < 1800 and player.life >= 1500 :
+        heart3.image = 'heart_half'
+    elif player.life < 1500:
+        heart3.image = 'heart_empty'
+    heart3.draw()
+
+    if player.life >= 1200 :
+        heart2.image = 'heart_full'
+    elif player.life < 1200 and player.life >= 900:
+        heart2.image = 'heart_half'
+     
+    elif player.life < 900:
+        heart2.image = 'heart_empty'
+    heart2.draw()
+
+    if player.life == 600:
+        heart1.image= 'heart_full'
+    elif player.life < 600 and player.life >= 300 :
+        heart1.image = 'heart_half'
+    elif player.life < 300:
+        heart1.image = 'heart_empty'
+    heart1.draw()
 
     for food in food_list: 
         food.draw()
@@ -169,6 +248,23 @@ def draw(): # ce qui est dans le draw, ne doit que draw. On peut mettre des if (
     # *** hurt score *** 
     if enemy_value_score_visible:
         screen.draw.text("-200", center=((player.pos[0]+30), (player.pos[1]-player.height-10)), color="white", gcolor="red", fontsize= 35)
+    
+
+
+def draw():
+    if fullscreen:
+        screen.surface = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)
+    else:
+        screen.surface = pygame.display.set_mode((WIDTH, HEIGHT))
+
+    if menu_visible == True:
+        draw_menu()
+    #elif KeyboardEvent or pygame.MOUSEBUTTONDOWN == True:  # CHECK si fonctionne !
+        # penser au game over !
+    else :
+        draw_game()
+
+
 
 def random_pos():
     image_width = 64 # food sprite size
@@ -209,8 +305,8 @@ def food_update(dt):  #delta time = (la différence de temps) le temps qui s'est
         food.pos = [food.pos[0] + mvt_x, food.pos[1] + mvt_y]
 
         if player.colliderect(food): 
-            food_list.remove(food)
             sounds.munch.play()
+            food_list.remove(food)
             score += 100
             food_value_score_visible = True
             clock.schedule_interval(set_food_value_score, 0.8)
@@ -226,12 +322,6 @@ def food_update(dt):  #delta time = (la différence de temps) le temps qui s'est
         elif food.pos[1] >= HEIGHT -10:
             food_list.remove(food)
             # pas de break car dans le casse-brique, touche une brique à la foi, ici, plusieurs food peuvent collide
-
-    if poop_visible:
-        poop.move_towards(ship.sprite, 1020*dt) # *dt donne la vitesse dans ce cas-ci
-        #if ship.sprite.collidepoint(poop):
-            #pygame.Surface.set_alpha(poop, 0)
-
 
 
 
@@ -256,6 +346,7 @@ def enemy_update(dt):
             enemy_list.remove(enemy)
             sounds.glug_glug_glug.play()
             score -= malus
+            player.life -= malus
             set_enemy_action_animate()
             enemy_value_score_visible = True
             clock.schedule_interval(set_enemy_value_score, 0.8)
@@ -276,12 +367,13 @@ def enemy_action_trigger_update(dt):
     if player.colliderect(enemy_action_trigger):
         #enemy_action_trigger_visible = False
         sounds.slap_umph.play()
+        set_player_hit_angry()
         enemy_action_trigger_speed = [0, enemy_action_trigger_maxspeed]
         enemy_action.move_back(-132)  #important de le mettre ici sinon il reste en dehors de l'écran !
         
 
 
-def update(dt):
+def update_game(dt):
     # quand j'aurais défini les conditions de game over :
     # global score, game_over
     # if game_over:
@@ -312,6 +404,18 @@ def update(dt):
         enemy_action_trigger_update(dt)
     ship.move(dt)
 
+    for poop in poop_list :
+        poop.update(dt)
+
+def update_menu(dt):
+    #sounds.menu_music.play(-1)
+    pass
+
+def update(dt):
+    if menu_visible == True :
+        update_menu(dt)
+    else :
+        update_game(dt)
 
 
 def on_mouse_move(pos): 
@@ -325,19 +429,25 @@ def on_mouse_move(pos):
     y = player.pos[1]
     player.pos = [x, y]
 
+def on_mouse_down(button):
+    global menu_visible
+    if menu_visible == True and button == mouse.LEFT:
+        menu_visible = False
+
 
 def on_key_down(key):
-    global pause, fullscreen
-
+    global pause, fullscreen, menu_visible
     if key == keys.F11:
         fullscreen = not fullscreen
-       
     elif key == keys.ESCAPE:
         exit()
 
-    elif key == keys.SPACE:
-        pause = not pause
-        
+    if menu_visible == True :
+        menu_visible = False
+    else :
+        if key == keys.SPACE:
+            pause = not pause
+            
 
 def set_enemy_action_animate():
     global enemy_action_visible
@@ -350,7 +460,6 @@ def set_enemy_action_animate():
     
 
 
-
 def set_enemy_action_normal():
     enemy_action.image = 'bender_idle'
     
@@ -358,9 +467,19 @@ def set_enemy_action_normal():
 def set_player_eat_then_poop():
     global poop_visible
     player.image = 'nibbler_yay'
+    clock.schedule_interval(set_player_normal, 0.8)
+    new_poop = Poop()
+    new_poop.pos = (player.pos[0] -100, player.pos[1])  # WIDTH/2 -30, HEIGHT-5
+    poop_list.append(new_poop)
+
+
+def set_player_hit_angry():
+    player.image = 'nibbler_action'
     clock.schedule_interval(set_player_normal, 1)
-    poop_visible = True
-    poop.pos = (player.pos[0] -100, player.pos[1])  # WIDTH/2 -30, HEIGHT-5
+
+def shrink_poop():
+    global poop
+ 
 
 
 def set_player_normal():
