@@ -1,5 +1,3 @@
-from turtle import left
-from keyboard import KEY_DOWN, KeyboardEvent
 import pgzrun
 from pgzhelper import *
 from random import randint, choice
@@ -22,7 +20,7 @@ game_over = False
 score = 0
 # pour les différents scores, p-e que je devrais faire des sous-dossiers, et faire un dirlist.
 malus = 300
-combo = 0
+food_eaten = 0
 food_value_score_visible = False
 enemy_value_score_visible = False
 pause = False
@@ -30,6 +28,7 @@ fullscreen = True
 
 
 background = Actor("space_planet_left")
+pause_img = Actor("hypnotoad_effect_filter_transparent_noborders")
 
 class Menu():
     def __init__(self):
@@ -63,11 +62,14 @@ player = Player()
 
 # *** player life actor ***
 heart1 = Actor('heart_full')
-heart1.pos = [20, 20]
+heart1.scale = 1
+heart1.pos = [30, 70] # or [70, 70] would be centered on textbox
 heart2 = Actor('heart_full')
-heart2.pos = [(heart1.pos[0]+41), 20]
+heart2.scale = 1
+heart2.pos = [(heart1.pos[0]+41), heart1.pos[1]]
 heart3 = Actor('heart_full')
-heart3.pos = [(heart2.pos[0]+41), 20]
+heart3.scale = 1
+heart3.pos = [(heart2.pos[0]+41), heart1.pos[1]]
 
 
 # *** food ***
@@ -131,10 +133,21 @@ class Ship : # ou Ship(Actor)
         self.boostspeed = 30
         self.boostspeed_timer = 0
         self.move_timer = 0
-        self.burstflamesprite = Actor('small_burst', anchor=['left','center'])
-        self.burstflamesprite.scale = 0.50
-        self.burstflamesprite.pos = (self.sprite.pos[0], self.sprite.pos[1])
-    
+        self.burstflamesprite_dflt = Actor('xsmall_burst', anchor=['left','center'])
+        self.burstflamesprite_dflt.scale = 0.50
+        self.burstflamesprite_dflt.pos = (self.sprite.pos[0], self.sprite.pos[1])
+        self.burstflamesprite_s = Actor('small_burst', anchor=['left','center'])
+        self.burstflamesprite_s.scale = 0.50
+        self.burstflamesprite_s.pos = (self.sprite.pos[0], self.sprite.pos[1])
+        self.burstflamesprite_m = Actor('medium_burst', anchor=['left','center'])
+        self.burstflamesprite_m.scale = 0.50
+        self.burstflamesprite_m.pos = (self.sprite.pos[0], self.sprite.pos[1])
+        self.burstflamesprite_l = Actor('large_burst', anchor=['left','center'])
+        self.burstflamesprite_l.scale = 0.50
+        self.burstflamesprite_l.pos = (self.sprite.pos[0], self.sprite.pos[1])
+        self.burstflamesprite_xl = Actor('xlarge_burst', anchor=['left', 'center'])
+        self.burstflamesprite_xl.scale = 0.50
+        self.burstflamesprite_xl.pos = (self.sprite.pos[0], self.sprite.pos[1])
     
     def move(self, dt):
         if self.move_timer > 0 :
@@ -143,12 +156,31 @@ class Ship : # ou Ship(Actor)
             x = self.sprite.pos[0] + self.speed * self.direction[0] * dt
             y = self.sprite.pos[1] + self.speed * self.direction[1] * dt
             self.sprite.pos = [x , y]
-        self.burstflamesprite.pos = (self.sprite.pos[0], self.sprite.pos[1])
+        self.burstflamesprite_dflt.pos = (self.sprite.pos[0], self.sprite.pos[1])
             
-
     def draw(self):
+        global food_eaten
         self.sprite.draw()
-        self.burstflamesprite.draw()
+        self.burstflamesprite_dflt.draw()
+
+        # code not working !  
+        if food_eaten == 3:
+            self.burstflamesprite_dflt.image = 'small_burst'
+            #self.burstflamesprite_s.draw()   
+        elif malus == True : # ne marche pas
+            self.burstflamesprite_dflt.image = 'xsmall_burst'
+        if food_eaten == 5:
+            self.burstflamesprite_dflt.image = 'medium_burst'
+        elif malus == True :
+            self.burstflamesprite_dflt.image = 'small_burst'
+        if food_eaten == 7 :
+            self.burstflamesprite_dflt.image = 'large_burst'
+        elif malus == True :
+            self.burstflamesprite_dflt.image = 'medium_burst'
+        if food_eaten == 10:
+            self.burstflamesprite_dflt.image = 'xlarge_burst'
+        elif malus == True:
+            self.burstflamesprite_dflt.image = 'large_burst'
         
     def decelerate(self):
         self.speed /= 2
@@ -161,6 +193,12 @@ ship = Ship() #crée l'instance
 # *** functions ***
 
 def draw_menu():
+     #  if game_over:
+        #screen.clear()
+        #screen.draw.text('Game Over', (WIDTH/2, HEIGHT/2), color="red", gcolor="yellow", owidth=0.25, ocolor="grey", fontsize=100)
+        #screen.draw.text('Score: ' + str(round(score)), (WIDTH/2, HEIGHT/2+10), color="gold", owidth=0.25, ocolor="grey", fontsize=50)
+    #else:
+
     screen.clear()
     menu.draw()
 
@@ -175,12 +213,6 @@ def draw_game(): # ce qui est dans le draw, ne doit que draw. On peut mettre des
     global food # mis la variable globale, car error de call before assignement de food
 
     # si je veux fullscreen sans pouvoir en sortir :    screen.surface = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)
-    
-    #  if game_over:
-        #screen.clear()
-        #screen.draw.text('Game Over', (WIDTH/2, HEIGHT/2), color="red", gcolor="yellow", owidth=0.25, ocolor="grey", fontsize=100)
-        #screen.draw.text('Score: ' + str(round(score)), (WIDTH/2, HEIGHT/2+10), color="gold", owidth=0.25, ocolor="grey", fontsize=50)
-    #else:
 
     screen.clear() # à mettre dans le if game_over
     # screen.fill((1, 7, 46)) si pas de background
@@ -189,14 +221,34 @@ def draw_game(): # ce qui est dans le draw, ne doit que draw. On peut mettre des
     screen.draw.rect(BOX, WHITE)
 
     screen.draw.textbox(str(score), (15, 100, 200, 50), color=(255,255,255), gcolor="green")
+
+    screen.draw.text("Quantity of food eaten : " + str(food_eaten), (20, 160), color=(255,255,255), gcolor="gold", fontsize= 40)
     
     for poop in poop_list :
         poop.draw()
     # si je veux qu'il apparaisse derrière le player, il faut qu'il soit draw avant le player. Car dans le draw, les derniers élements superposent les précédents
 
-
     player.draw()
+
+    # *** Ship draw ***
     ship.draw()
+    # mettre ici les conditions de changement de sprite de flamme ? ou draw(self): ?
+    #  if combo == 3:
+        #ship.burstflamesprite_s.draw()   
+    #elif malus == True :
+        #ship.burstflamesprite_dflt.draw()
+    #if combo == 5:
+        #ship.burstflamesprite_m.draw()
+    #elif malus == True :
+        #ship.burstflamesprite_s.draw()
+    #if combo == 7 :
+        #ship.burstflamesprite_l.draw()
+    #elif malus == True :
+        #ship.burstflamesprite_m.draw()
+    #if combo == 10:
+        #ship.burstflamesprite_xl.draw()
+    #elif malus == True:
+        #ship.burstflamesprite_l.draw()
 
     # *** player life hearts draw ***
 
@@ -238,7 +290,10 @@ def draw_game(): # ce qui est dans le draw, ne doit que draw. On peut mettre des
 
     # *** game pause ***
     if pause == True :
-        screen.draw.text("Game Paused", center=(WIDTH/2, HEIGHT/2), color="cyan", gcolor="magenta", owidth=0.25, ocolor="grey", fontsize=100, fontname="ocraext")
+        screen.draw.text("Game Paused", center=(WIDTH/2, (HEIGHT/2 -200)), color="cyan", gcolor="magenta", owidth=0.25, ocolor="grey", fontsize=100, fontname="ocraext")
+        pause_img.pos = [WIDTH/2, (HEIGHT/2 + 100)]
+        pause_img.draw()
+
 
     # *** Scoring draw ***
     # *** global score ***
@@ -285,7 +340,7 @@ def random_pos_enemy():
 
 
 def food_update(dt):  #delta time = (la différence de temps) le temps qui s'est passé depuis la précédente update (1/60e de seconde)
-    global food_time, food, score, food_value_score_visible, enemy_value_score_visible, combo, poop
+    global food_time, food, score, food_value_score_visible, enemy_value_score_visible, food_eaten, poop
 
     food_time -= dt # dt = changement du temps
     if food_time <= 0.0: # quand le sablier est vide ou en dessous de 0
@@ -311,9 +366,11 @@ def food_update(dt):  #delta time = (la différence de temps) le temps qui s'est
             food_value_score_visible = True
             clock.schedule_interval(set_food_value_score, 0.8)
             ship.move_timer = 1
-            combo += 1
+            food_eaten += 1
             # if combo % 3 == 0 :   règle si par incrémentation de 3
             # sinon que des if elif
+            
+
                 
 
     # *** darkmatter generating ***
@@ -374,6 +431,7 @@ def enemy_action_trigger_update(dt):
 
 
 def update_game(dt):
+    global food_eaten, score
     # quand j'aurais défini les conditions de game over :
     # global score, game_over
     # if game_over:
@@ -406,6 +464,7 @@ def update_game(dt):
 
     for poop in poop_list :
         poop.update(dt)
+
 
 def update_menu(dt):
     #sounds.menu_music.play(-1)
