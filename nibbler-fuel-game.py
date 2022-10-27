@@ -7,7 +7,7 @@ import pygame
 #from pgzero.builtins import Actor, animate, Rect, images, clock, sounds
 #si j'importe tout ci-dessus : n'affiche plus de surlignage rouge mais le scale ne fonctionne plus sur le ship étrangement
 
-
+# --------------------------- Variables -----------------------------
 
 WIDTH = 1440
 HEIGHT = 900
@@ -26,6 +26,7 @@ enemy_value_score_visible = False
 pause = False
 fullscreen = True
 
+# ************************** Menu Class *********************************
 
 background = Actor("space_planet_left")
 pause_img = Actor("hypnotoad_effect_filter_transparent_noborders")
@@ -39,6 +40,7 @@ class Menu():
         self.welcome_txt = "Welcome to Space Gobbler !"
         #self.welcome_txt.pos = (WIDTH/2, (self.icon.pos[1]-30))     pos is not recognized because str
         self.title_txt = "Press any key"
+        self.author= "Made by GlitchyMuon"
 
     def draw(self):
         self.background.draw()
@@ -51,7 +53,7 @@ menu = Menu()
 menu_visible = True
 
 
-# *** player ***
+# ************************** player ****************************************
 class Player(Actor):
     def __init__(self):
         super().__init__("nibbler_idle", anchor= ['center', 'bottom'])
@@ -60,7 +62,7 @@ class Player(Actor):
 
 player = Player()
 
-# *** player life actor ***
+# ************************** player life actor *****************************
 heart1 = Actor('heart_full')
 heart1.scale = 1
 heart1.pos = [30, 70] # or [70, 70] would be centered on textbox
@@ -72,7 +74,7 @@ heart3.scale = 1
 heart3.pos = [(heart2.pos[0]+41), heart1.pos[1]]
 
 
-# *** food ***
+# ************************** food ******************************************
 food_time = 0
 food_list = []
 foodnames = [] # les fichiers
@@ -82,18 +84,18 @@ for food_file in listdir(r'images/all_food'):
 
 food_speed = [0, 240] # 0 en x car ne va ni vers la gauche(-n) ni droite(n positif). En y nombre positif car va vers le bas. Si négatif, va vers le haut
 
-#*** Enemy = Fotran Beer ***
+#************************** Enemy = Fotran Beer ****************************
 enemy_time = randint(10, 15) # temps avant le premier
 enemy_list = []
 enemy_speed = [0, 240]
 
 
-# *** Enemy Action = Bender ***
+# ************************** Enemy Action = Bender *************************
 enemy_action = Actor("bender_idle", anchor=['center', 'bottom'])
 enemy_action.pos = [WIDTH -66, HEIGHT]
 enemy_action_visible = False
 
-# *** Enemy trigger = wrench ***
+# ************************** Enemy trigger = wrench *************************
 enemy_action_trigger = Actor("wrench_resized")
 enemy_action_trigger_visible = False
 enemy_action_trigger_maxspeed = 350
@@ -101,8 +103,9 @@ enemy_action_trigger_speed = [-enemy_action_trigger_maxspeed, 0]
 enemy_action_trigger_time = 0
 
 
-# *** darkmatter poop ***
+# ************************** Darkmatter = poop Class ******************************
 poop_list = []
+poop_visible = False
 
 class Poop(Actor):
     def __init__(self):
@@ -116,12 +119,11 @@ class Poop(Actor):
             # si je veux shrink :
             #if self.scale >= 0 :
                 #self.scale -= 2 *dt
-
-
         
 poop = Poop()
 
-poop_visible = False
+
+# ************************** Ship Class *********************************************
 
 class Ship : # ou Ship(Actor)
     def __init__(self):
@@ -136,7 +138,8 @@ class Ship : # ou Ship(Actor)
         self.burstflamesprite_dflt = Actor('xsmall_burst', anchor=['left','center'])
         self.burstflamesprite_dflt.scale = 0.50
         self.burstflamesprite_dflt.pos = (self.sprite.pos[0], self.sprite.pos[1])
-        self.burstflamesprite_s = Actor('small_burst', anchor=['left','center'])
+        # code ci-dessous pas nécessair mnt que j'ai mis dans draw(self):
+        """self.burstflamesprite_s = Actor('small_burst', anchor=['left','center'])
         self.burstflamesprite_s.scale = 0.50
         self.burstflamesprite_s.pos = (self.sprite.pos[0], self.sprite.pos[1])
         self.burstflamesprite_m = Actor('medium_burst', anchor=['left','center'])
@@ -147,7 +150,7 @@ class Ship : # ou Ship(Actor)
         self.burstflamesprite_l.pos = (self.sprite.pos[0], self.sprite.pos[1])
         self.burstflamesprite_xl = Actor('xlarge_burst', anchor=['left', 'center'])
         self.burstflamesprite_xl.scale = 0.50
-        self.burstflamesprite_xl.pos = (self.sprite.pos[0], self.sprite.pos[1])
+        self.burstflamesprite_xl.pos = (self.sprite.pos[0], self.sprite.pos[1]) """
     
     def move(self, dt):
         if self.move_timer > 0 :
@@ -157,7 +160,7 @@ class Ship : # ou Ship(Actor)
             y = self.sprite.pos[1] + self.speed * self.direction[1] * dt
             self.sprite.pos = [x , y]
         self.burstflamesprite_dflt.pos = (self.sprite.pos[0], self.sprite.pos[1])
-            
+        
     def draw(self):
         global food_eaten
         self.sprite.draw()
@@ -166,31 +169,35 @@ class Ship : # ou Ship(Actor)
         # code not working !  
         if food_eaten == 3:
             self.burstflamesprite_dflt.image = 'small_burst'
-            #self.burstflamesprite_s.draw()   
-        elif malus == True : # ne marche pas
+        elif player.colliderect(enemy_action_trigger):
             self.burstflamesprite_dflt.image = 'xsmall_burst'
         if food_eaten == 5:
             self.burstflamesprite_dflt.image = 'medium_burst'
-        elif malus == True :
+        elif player.colliderect(enemy_action_trigger) :
             self.burstflamesprite_dflt.image = 'small_burst'
         if food_eaten == 7 :
             self.burstflamesprite_dflt.image = 'large_burst'
-        elif malus == True :
+        elif player.colliderect(enemy_action_trigger):
             self.burstflamesprite_dflt.image = 'medium_burst'
         if food_eaten == 10:
             self.burstflamesprite_dflt.image = 'xlarge_burst'
-        elif malus == True:
+        elif player.colliderect(enemy_action_trigger):
             self.burstflamesprite_dflt.image = 'large_burst'
         
     def decelerate(self):
         self.speed /= 2
         self.boostspeed /= 2
+
+    def decelerate_further(self):
+        self.speed /= 4
+        self.boostspeed /= 4
+        self.direction = [0, -1] # à mettre dans le move ? et redéfinir toutes les conditions de déceleration
         
 
 ship = Ship() #crée l'instance
 
 
-# *** functions ***
+# ---------------------------- Functions --------------------------------------------------
 
 def draw_menu():
      #  if game_over:
@@ -202,12 +209,13 @@ def draw_menu():
     screen.clear()
     menu.draw()
 
-    screen.draw.text(f"F11 : Fullscreen\nESC : Exit Fullscreen\nPause : Spacebar", (10, 15), color=(255,255,255), fontsize=16, fontname="retro gaming")
+    screen.draw.text(f"F11 : Fullscreen\nESC : Exit Fullscreen\nPause : Spacebar", (10, 15), color=(255,255,255), fontsize=16, fontname="retrogaming")
 
     screen.draw.text(menu.welcome_txt, center=(WIDTH/2, (HEIGHT/2-300)), color="cyan", gcolor="magenta", owidth=0.25, ocolor="grey", fontsize=80, fontname="ocraext")
 
     screen.draw.text(menu.title_txt, center =(WIDTH/2, (HEIGHT-100)), color="purple", gcolor='blue', owidth=0.25, ocolor="grey", fontsize= 30, fontname ="1up")
 
+    screen.draw.text(menu.author, (WIDTH-275, HEIGHT-30), color="seagreen", gcolor='lightcoral', owidth=0.25, ocolor= "darkslategray", fontsize= 20, fontname="retrogaming")
 
 def draw_game(): # ce qui est dans le draw, ne doit que draw. On peut mettre des if (pas gérer de collision, ni update)
     global food # mis la variable globale, car error de call before assignement de food
@@ -230,27 +238,11 @@ def draw_game(): # ce qui est dans le draw, ne doit que draw. On peut mettre des
 
     player.draw()
 
-    # *** Ship draw ***
+    # ____________ Ship draw ____________
     ship.draw()
-    # mettre ici les conditions de changement de sprite de flamme ? ou draw(self): ?
-    #  if combo == 3:
-        #ship.burstflamesprite_s.draw()   
-    #elif malus == True :
-        #ship.burstflamesprite_dflt.draw()
-    #if combo == 5:
-        #ship.burstflamesprite_m.draw()
-    #elif malus == True :
-        #ship.burstflamesprite_s.draw()
-    #if combo == 7 :
-        #ship.burstflamesprite_l.draw()
-    #elif malus == True :
-        #ship.burstflamesprite_m.draw()
-    #if combo == 10:
-        #ship.burstflamesprite_xl.draw()
-    #elif malus == True:
-        #ship.burstflamesprite_l.draw()
+   
 
-    # *** player life hearts draw ***
+    # ____________ Player life hearts draw ____________
 
     if player.life == 1800 :
         heart3.image = 'heart_full'
@@ -283,28 +275,28 @@ def draw_game(): # ce qui est dans le draw, ne doit que draw. On peut mettre des
     for enemy in enemy_list:
         enemy.draw()
 
-    # *** bender appear (ennemy_action)***
+    # ____________ Bender Appear (ennemy_action)____________
     if enemy_action_visible:
         enemy_action.draw()
         enemy_action_trigger.draw()
 
-    # *** game pause ***
+    # ____________ Game Pause Screen ____________
     if pause == True :
         screen.draw.text("Game Paused", center=(WIDTH/2, (HEIGHT/2 -200)), color="cyan", gcolor="magenta", owidth=0.25, ocolor="grey", fontsize=100, fontname="ocraext")
         pause_img.pos = [WIDTH/2, (HEIGHT/2 + 100)]
         pause_img.draw()
 
 
-    # *** Scoring draw ***
-    # *** global score ***
+    # ____________ Above player score draw ____________
+    
     if food_value_score_visible: 
         screen.draw.text("100", center=((player.pos[0]+30), (player.pos[1]-player.height-10)), color="white",gcolor="yellow", fontsize= 35)
 
-    # *** hurt score *** 
+    # ____________ hurt score ____________
     if enemy_value_score_visible:
         screen.draw.text("-200", center=((player.pos[0]+30), (player.pos[1]-player.height-10)), color="white", gcolor="red", fontsize= 35)
     
-
+# ++++++++ General Draw ++++++++++
 
 def draw():
     if fullscreen:
@@ -350,11 +342,11 @@ def food_update(dt):  #delta time = (la différence de temps) le temps qui s'est
         food_time = randint(1,3)
         pos= food.pos
 
-    # *** collision with player and/or bottom screen ***
+    # ____________ Collision with player and/or bottom screen ____________
     mvt_x = food_speed[0] * dt #* 1/60e de sec
     mvt_y = food_speed[1] * dt
 
-    # *** ok food collision with player ***
+    # ____________ Ok food collision with player ____________
 
     for food in food_list :
         food.pos = [food.pos[0] + mvt_x, food.pos[1] + mvt_y]
@@ -371,9 +363,7 @@ def food_update(dt):  #delta time = (la différence de temps) le temps qui s'est
             # sinon que des if elif
             
 
-                
-
-    # *** darkmatter generating ***
+    # ____________ Darkmatter/Poop generating ____________
             set_player_eat_then_poop()
 
         elif food.pos[1] >= HEIGHT -10:
@@ -460,7 +450,11 @@ def update_game(dt):
     enemy_update(dt)
     if enemy_action_trigger_visible == True:
         enemy_action_trigger_update(dt)
+
+    # *** moving ship ***
     ship.move(dt)
+    if player.colliderect(enemy_action_trigger):
+        ship.decelerate_further()
 
     for poop in poop_list :
         poop.update(dt)
@@ -469,6 +463,8 @@ def update_game(dt):
 def update_menu(dt):
     #sounds.menu_music.play(-1)
     pass
+
+# ++++++++ General Update here ++++++++
 
 def update(dt):
     if menu_visible == True :
@@ -518,7 +514,6 @@ def set_enemy_action_animate():
     #clock.schedule_interval(set_enemy_action_invisible, 1.50)  --code si je ne le déplace pas.-- bug de collide avec poop qui va vers ship
     
 
-
 def set_enemy_action_normal():
     enemy_action.image = 'bender_idle'
     
@@ -535,11 +530,7 @@ def set_player_eat_then_poop():
 def set_player_hit_angry():
     player.image = 'nibbler_action'
     clock.schedule_interval(set_player_normal, 1)
-
-def shrink_poop():
-    global poop
  
-
 
 def set_player_normal():
     player.image = 'nibbler_idle'
@@ -553,12 +544,6 @@ def set_food_value_score():
 def set_enemy_value_score():
     global enemy_value_score_visible
     enemy_value_score_visible = False
-
-def set_enemy_action_invisible():
-    global enemy_action_visible
-    enemy_action_visible = False
-    # là il disparait trop abruptement : amélioration -> le déplacer hors de l'écran et le faire remove.
-
 
     
 
