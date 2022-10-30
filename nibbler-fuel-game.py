@@ -1,4 +1,3 @@
-from queue import LifoQueue
 import pgzrun
 from pgzhelper import *
 from random import randint, choice
