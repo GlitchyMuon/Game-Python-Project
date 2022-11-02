@@ -20,6 +20,7 @@ game_over = False
 score = 0
 # pour les différents scores, p-e que je devrais faire des sous-dossiers, et faire un dirlist.
 malus = 300
+malus_taken = False
 food_eaten = 0
 food_value_score_visible = False
 enemy_value_score_visible = False
@@ -185,13 +186,9 @@ class Ship : # ou Ship(Actor)
             self.burstflamesprite_dflt.image = 'large_burst'
         
     def decelerate(self):
-        self.speed /= 2
-        self.boostspeed /= 2
-
-    def decelerate_further(self):
-        self.speed /= 4
-        self.boostspeed /= 4
-        self.direction = [0, -1] # à mettre dans le move ? et redéfinir toutes les conditions de déceleration
+        self.speed *= 1
+        self.boostspeed *= 1
+        self.direction = [+1, 0] # à mettre dans le move ? et redéfinir toutes les conditions de déceleration
         
 
 ship = Ship() #crée l'instance
@@ -421,7 +418,7 @@ def enemy_action_trigger_update(dt):
 
 
 def update_game(dt):
-    global food_eaten, score
+    global food_eaten, score, malus_taken
     # quand j'aurais défini les conditions de game over :
     # global score, game_over
     # if game_over:
@@ -453,8 +450,13 @@ def update_game(dt):
 
     # *** moving ship ***
     ship.move(dt)
+    # Clock ci-dessous ne fonctionne pas !
     if player.colliderect(enemy_action_trigger):
-        ship.decelerate_further()
+        malus_taken = True
+        # Should define a set_ship_move_normal() and a set_ship_decelerate() but in ship Class or not ?
+        #def set_ship_decelarate():
+        #ship.decelerate()
+        #clock.schedule_interval(ship.move, 0.5)
 
     for poop in poop_list :
         poop.update(dt)
@@ -544,6 +546,10 @@ def set_food_value_score():
 def set_enemy_value_score():
     global enemy_value_score_visible
     enemy_value_score_visible = False
+
+
+
+
 
     
 
