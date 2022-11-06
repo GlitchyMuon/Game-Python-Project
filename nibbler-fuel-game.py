@@ -133,9 +133,9 @@ class Ship : # ou Ship(Actor)
         self.sprite.pos = (WIDTH, images.planet_express.get_height()*0.33-33)
         self.direction = [-1, 0]
         self.speed = 10
-        self.boostspeed = 30
-        self.boostspeed_timer = 0
-        self.move_timer = 0
+        self.boostspeed = 30        # still need to do something with this and combo score
+        self.boostspeed_timer = 0   # ditto
+        self.move_timer = 0         # ditto
         self.burstflamesprite_dflt = Actor('xsmall_burst', anchor=['left','center'])
         self.burstflamesprite_dflt.scale = 0.50
         self.burstflamesprite_dflt.pos = (self.sprite.pos[0], self.sprite.pos[1])
@@ -186,8 +186,8 @@ class Ship : # ou Ship(Actor)
             self.burstflamesprite_dflt.image = 'large_burst'
         
     def decelerate(self):
-        self.speed *= 1
-        self.boostspeed *= 1
+        self.speed *= 1.25
+        #self.boostspeed *= 1.25        peut pas mettre cette même valeur car le ship sort de l'écran !
         self.direction = [+1, 0] # à mettre dans le move ? et redéfinir toutes les conditions de déceleration
         
 
@@ -453,10 +453,10 @@ def update_game(dt):
     # Clock ci-dessous ne fonctionne pas !
     if player.colliderect(enemy_action_trigger):
         malus_taken = True
-        # Should define a set_ship_move_normal() and a set_ship_decelerate() but in ship Class or not ?
-        #def set_ship_decelarate():
-        #ship.decelerate()
-        #clock.schedule_interval(ship.move, 0.5)
+        set_ship_decelarate()
+        clock.schedule_interval(set_ship_move_normal, 1) # try different times/secs
+       
+
 
     for poop in poop_list :
         poop.update(dt)
@@ -547,6 +547,15 @@ def set_enemy_value_score():
     global enemy_value_score_visible
     enemy_value_score_visible = False
 
+def set_ship_decelarate():
+    ship.decelerate()
+
+def set_ship_move_normal():
+    global malus_taken
+    malus_taken = False
+    ship.direction = [-1, 0]
+    ship.speed = 10
+    ship.boostspeed = 30
 
 
 
