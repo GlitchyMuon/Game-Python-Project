@@ -27,10 +27,10 @@ enemy_value_score_visible = False
 pause = False
 fullscreen = True
 
-# ************************** Menu Class *********************************
-
 background = Actor("space_planet_left")
 pause_img = Actor("hypnotoad_effect_filter_transparent_noborders")
+gameover_img = Actor("planet_express_crash")
+# ************************** Menu Class *********************************
 
 class Menu():
     def __init__(self):
@@ -60,6 +60,11 @@ class Player(Actor):
         super().__init__("nibbler_idle", anchor= ['center', 'bottom'])
         self.pos = [WIDTH/2, HEIGHT]
         self.life = 1800
+
+    def update(self): # not working
+        global game_over
+        if self.life == 0 :
+            game_over = True
 
 player = Player()
 
@@ -186,7 +191,8 @@ class Ship : # ou Ship(Actor)
             self.burstflamesprite_dflt.image = 'large_burst'
         
     def decelerate(self):
-        self.speed *= 1.25
+        self.speed *= 1.1
+        #print(self.speed)
         #self.boostspeed *= 1.25        peut pas mettre cette même valeur car le ship sort de l'écran !
         self.direction = [+1, 0] # à mettre dans le move ? et redéfinir toutes les conditions de déceleration
         
@@ -197,11 +203,6 @@ ship = Ship() #crée l'instance
 # ---------------------------- Functions --------------------------------------------------
 
 def draw_menu():
-     #  if game_over:
-        #screen.clear()
-        #screen.draw.text('Game Over', (WIDTH/2, HEIGHT/2), color="red", gcolor="yellow", owidth=0.25, ocolor="grey", fontsize=100)
-        #screen.draw.text('Score: ' + str(round(score)), (WIDTH/2, HEIGHT/2+10), color="gold", owidth=0.25, ocolor="grey", fontsize=50)
-    #else:
 
     screen.clear()
     menu.draw()
@@ -292,6 +293,18 @@ def draw_game(): # ce qui est dans le draw, ne doit que draw. On peut mettre des
     # ____________ hurt score ____________
     if enemy_value_score_visible:
         screen.draw.text("-200", center=((player.pos[0]+30), (player.pos[1]-player.height-10)), color="white", gcolor="red", fontsize= 35)
+
+    # ____________ Game Over Screen ____________ NOT WORKING YET !!!
+    if player.life == 0 :
+        game_over = True
+        if game_over == True : 
+            screen.clear()
+            screen.draw.text('Game Over', center=(WIDTH/2, (HEIGHT/2 - 200)), color="red", gcolor="yellow", owidth=0.25, ocolor="grey", fontsize=100)
+            # still need to adjust score height !
+            screen.draw.text('Score: ' + str(round(score)), center=(WIDTH/2, HEIGHT/2+500), color="gold", owidth=0.25, ocolor="grey", fontsize=50)
+            gameover_img.pos = [WIDTH/2, (HEIGHT/2 + 100)]
+            gameover_img.draw()
+    
     
 # ++++++++ General Draw ++++++++++
 
@@ -426,6 +439,9 @@ def update_game(dt):
 
     if pause :
         return
+    
+    #if game_over : # je sais pas s'il faut ça :s
+        #return
 
     if dt > 0.5 :
         return
