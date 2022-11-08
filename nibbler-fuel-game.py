@@ -15,7 +15,7 @@ ROTATION_SPEED = 80
 WHITE = 255, 255, 255
 BOX = Rect((15, 100, 200, 50))
 
-
+game_time = 0
 game_over = False
 score = 0
 
@@ -32,6 +32,7 @@ fullscreen = True
 background = Actor("space_planet_left")
 pause_img = Actor("hypnotoad_effect_filter_transparent_noborders")
 gameover_img = Actor("planet_express_crash")
+gameover_bg = Actor("nasa_asteroid_1440x900")
 # ************************** Menu Class *********************************
 
 class Menu():
@@ -94,7 +95,7 @@ for food_file in listdir(r'images/all_food'):
 food_speed = [0, 240] # 0 en x car ne va ni vers la gauche(-n) ni droite(n positif). En y nombre positif car va vers le bas. Si négatif, va vers le haut
 
 #************************** Enemy = Fortran Beer ****************************
-enemy_time = randint(10, 15) # temps avant le premier
+enemy_time = randint(5, 10) # temps avant le premier
 enemy_list = []
 enemy_speed = [0, 240]
 
@@ -138,34 +139,36 @@ class Ship : # ou Ship(Actor)
     def __init__(self):
         self.sprite=Actor('planet_express', anchor= ['right', 'center'])   #super().__init__('planet_express', anchor= ['right', 'center'])
         self.sprite.scale = 0.33    # pas besoin de mettre 'sprite.' si méthode héritage
-        self.sprite.pos = (WIDTH, images.planet_express.get_height()*0.33-33)
+        self.sprite.pos = (WIDTH-40, images.planet_express.get_height()*0.33-33)            # 40 = xsmall_burst width
+
         self.direction = [-1, 0]
         self.speed = 10
         self.boostspeed = 30        # still need to do something with this and streak
         self.boostspeed_timer = 0   # ditto
         self.move_timer = 0        
+
         self.burstflamesprite_dflt = Actor('xsmall_burst', anchor=['left','center'])
         self.burstflamesprite_dflt.scale = 0.50
         self.burstflamesprite_dflt.pos = (self.sprite.pos[0], self.sprite.pos[1])
         
-        self.penality = False
+        self.penalty = False
     
     def move(self, dt):
         global streak
-        if self.penality == True:
-            x = self.sprite.pos[0] + self.speed * -self.direction[0] * dt
+        if self.penalty == True:
+            x = self.sprite.pos[0] + self.speed * 1 * -self.direction[0] * dt
             y = self.sprite.pos[1] + self.speed * self.direction[1] * dt
             self.sprite.pos = [x , y]
 
         elif self.move_timer > 0 :
             self.move_timer -= dt
-            finalspeed= self.speed *streak * 0.5
+            finalspeed= self.speed *streak * 0.8
             x = self.sprite.pos[0] + finalspeed * self.direction[0] * dt
             y = self.sprite.pos[1] + finalspeed * self.direction[1] * dt
             self.sprite.pos = [x , y]
         self.burstflamesprite_dflt.pos = (self.sprite.pos[0], self.sprite.pos[1])
-        if self.sprite.pos[0] > WIDTH :
-            self.sprite.pos = (WIDTH, self.sprite.pos[1]) 
+        if self.sprite.pos[0] > WIDTH+40 : # 40 = xsmall_burst sprite width
+            self.sprite.pos = (WIDTH+40, self.sprite.pos[1]) 
             #parenthèses facultatif ici, sauf dans un print car la virgule dans beaucoup de cas sépare les éléments.
         
         if streak > 0:
@@ -191,7 +194,7 @@ class Ship : # ou Ship(Actor)
         
         
     def decelerate(self):
-        self.penality = True
+        self.penalty = True
         
 
 ship = Ship() #crée l'instance
@@ -210,11 +213,11 @@ def draw_menu():
 
     screen.draw.text(menu.title_txt, center =(WIDTH/2, (HEIGHT-100)), color="purple", gcolor='blue', owidth=0.25, ocolor="grey", fontsize= 30, fontname ="1up")
 
-    screen.draw.text(menu.author, (WIDTH-275, HEIGHT-30), color="seagreen", gcolor='lightcoral', owidth=0.25, ocolor= "darkslategray", fontsize= 20, fontname="retrogaming")
+    screen.draw.text(menu.author, (WIDTH-275, HEIGHT-30), color='seagreen', gcolor='lightcoral', owidth=0.25, ocolor= 'darkslategray', fontsize= 20, fontname="retrogaming")
 
 
 def draw_game(): # ce qui est dans le draw, ne doit que draw. On peut mettre des if (pas gérer de collision, ni update)
-    global food, total_food # mis la variable globale, car error de call before assignement de food
+    global food, total_food, game_over # mis la variable globale, car error de call before assignement de food
 
     # si je veux fullscreen sans pouvoir en sortir :    screen.surface = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)
 
@@ -296,14 +299,19 @@ def draw_game(): # ce qui est dans le draw, ne doit que draw. On peut mettre des
     # ____________ Game Over Screen ____________
     if player.life == 0 :
         game_over = True
-        if game_over == True : 
-            screen.clear()
+    
+        screen.clear()  #si je veux que tout s'efface, y compris le background et tout l'affichage
+        #background_img = pygame.image.load('nasa_asteroid_1024x614.jpg').convert_alpha()
+        #screen.blit(background_img, (0.0))
+        # doesn't work : TypeError: invalid destination position for blit       Must be in main directory
+        gameover_bg.draw()
+        gameover_img.draw() 
 
-            screen.draw.text('G a m e  O v e r', center=(WIDTH/2, (HEIGHT/2 - 300)), color="red", gcolor="yellow", owidth=0.25, ocolor="white", fontsize=125, fontname = "rh-shmatter")
-            # still need to adjust score height !
-            screen.draw.text('Highscore: ' + str(round(score)), center=(WIDTH/2, (HEIGHT/2-500)), color="gold", owidth=0.25, ocolor="grey", fontsize=70)
-            gameover_img.pos = [WIDTH/2, (HEIGHT/2 + 100)]
-            gameover_img.draw()
+        screen.draw.text('G a m e  O v e r', center=(WIDTH/2, (HEIGHT/2 - 300)), color="red", gcolor="yellow", owidth=0.30, ocolor="white", fontsize=150, fontname = "rh-shmatter")
+        # put Highscore when Highscore.dat has been implemented
+        screen.draw.text('Score: ' + str(score), center=(WIDTH/2, (HEIGHT/2-400)), color="gold", gcolor="darkgoldenrod", owidth=0.25, ocolor="grey", fontsize=70)
+        gameover_img.pos = [WIDTH/2, (HEIGHT/2 + 100)]
+        
     
     
 # ++++++++ General Draw ++++++++++
@@ -388,7 +396,13 @@ def enemy_update(dt):
         enemy = Actor("fortran_beer", anchor=['center', 'top'])
         enemy.pos = random_pos_enemy()
         enemy_list.append(enemy)
-        enemy_time = randint(5,10) #ne fonctionne pas, apparait direct !
+        if game_time >= 30:
+            enemy_time = randint(1,3)
+        elif game_time >= 20 :
+            enemy_time = randint(3,5)
+        else :
+            enemy_time = randint(5,7)
+
         pos = enemy.pos
 
       # *** enemy collision with player ***
@@ -400,9 +414,11 @@ def enemy_update(dt):
         if player.colliderect(enemy):
             enemy_list.remove(enemy)
             sounds.glug_glug_glug.play()
+
             score -= malus
             streak = 0
             player.life -= malus
+
             set_enemy_action_animate()
             enemy_value_score_visible = True
             clock.schedule_interval(set_enemy_value_score, 0.8)
@@ -445,19 +461,20 @@ def update_game(dt):
 
     if dt > 0.5 :
         return
-
-    pos = player.pos
-    if pos[0] > WIDTH -5:
-        pos[0] = WIDTH -5
-    elif pos[0] < 5:
-        pos[0] = 5
         
-    if pos[1] > WIDTH -5:
-        pos[1] = WIDTH -5
-    elif pos[1] < 5:
-        pos[1] = 5
-    
-    pos = player.pos
+    if not pause:
+        pos = player.pos
+        if pos[0] > WIDTH -5:
+            pos[0] = WIDTH -5
+        elif pos[0] < 5:
+            pos[0] = 5
+            
+        if pos[1] > WIDTH -5:
+            pos[1] = WIDTH -5
+        elif pos[1] < 5:
+            pos[1] = 5
+        
+        player.pos = pos
 
     food_update(dt)
     enemy_update(dt)
@@ -478,13 +495,18 @@ def update_game(dt):
 
 
 def update_menu(dt):
-    music.play('menu_music')
-    music.set_volume(0.2)
-    pass
+    print(menu_visible)
+    if not music.is_playing('menu_music'): #vérifier que la musique est en train de jouer ou non
+        music.play('menu_music')
+        music.set_volume(0.2)
+
 
 # ++++++++ General Update here ++++++++
 
 def update(dt):
+    global game_time
+    game_time += dt
+
     if menu_visible == True :
         update_menu(dt)
     else :
@@ -499,8 +521,9 @@ def on_mouse_move(pos):
     else :
         x = WIDTH - 200 # calcul : 50 est la moitié du sprite player. 130 est la taille approximatif du sprite de Bender/ennemy. 50 + 130 + 20 de marges = 200
 
-    y = player.pos[1]
-    player.pos = [x, y]
+    if not pause : # otherwise player has a loophole (can reposition themself beneath right food if too many Beers)
+        y = player.pos[1]
+        player.pos = [x, y]
 
 def on_mouse_down(button):
     global menu_visible
@@ -564,17 +587,15 @@ def set_enemy_value_score():
     global enemy_value_score_visible
     enemy_value_score_visible = False
 
+
 def set_ship_decelarate():
     ship.decelerate()
+
 
 def set_ship_move_normal():
     global malus_taken
     malus_taken = False
-    ship.penality = False
+    ship.penalty = False
 
-
-
-
-    
 
 pgzrun.go()
