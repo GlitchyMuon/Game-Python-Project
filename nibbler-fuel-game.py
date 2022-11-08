@@ -23,6 +23,7 @@ score = 0
 malus = 300
 malus_taken = False
 streak = 0
+total_food = 0
 food_value_score_visible = False
 enemy_value_score_visible = False
 pause = False
@@ -213,7 +214,7 @@ def draw_menu():
 
 
 def draw_game(): # ce qui est dans le draw, ne doit que draw. On peut mettre des if (pas gérer de collision, ni update)
-    global food # mis la variable globale, car error de call before assignement de food
+    global food, total_food # mis la variable globale, car error de call before assignement de food
 
     # si je veux fullscreen sans pouvoir en sortir :    screen.surface = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)
 
@@ -225,7 +226,8 @@ def draw_game(): # ce qui est dans le draw, ne doit que draw. On peut mettre des
 
     screen.draw.textbox(str(score), (15, 100, 200, 50), color=(255,255,255), gcolor="green")
 
-    screen.draw.text("Quantity of food eaten : " + str(streak), (20, 160), color=(255,255,255), gcolor="gold", fontsize= 40)
+    screen.draw.text("Quantity of food eaten : " + str(total_food), (20, 160), color=(255,255,255), gcolor="gold", fontsize= 40)
+    screen.draw.text("Current streak : " + str(streak), (20, 200), color=(255,255,255), gcolor="green", fontsize= 40)
     
     for poop in poop_list :
         poop.draw()
@@ -291,11 +293,12 @@ def draw_game(): # ce qui est dans le draw, ne doit que draw. On peut mettre des
     if enemy_value_score_visible:
         screen.draw.text("-200", center=((player.pos[0]+30), (player.pos[1]-player.height-10)), color="white", gcolor="red", fontsize= 35)
 
-    # ____________ Game Over Screen ____________ NOT WORKING YET !!!
+    # ____________ Game Over Screen ____________
     if player.life == 0 :
         game_over = True
         if game_over == True : 
             screen.clear()
+
             screen.draw.text('G a m e  O v e r', center=(WIDTH/2, (HEIGHT/2 - 300)), color="red", gcolor="yellow", owidth=0.25, ocolor="white", fontsize=125, fontname = "rh-shmatter")
             # still need to adjust score height !
             screen.draw.text('Highscore: ' + str(round(score)), center=(WIDTH/2, (HEIGHT/2-500)), color="gold", owidth=0.25, ocolor="grey", fontsize=70)
@@ -338,7 +341,7 @@ def random_pos_enemy():
 
 
 def food_update(dt):  #delta time = (la différence de temps) le temps qui s'est passé depuis la précédente update (1/60e de seconde)
-    global food_time, food, score, streak,food_value_score_visible, enemy_value_score_visible, streak, poop
+    global food_time, food, score, streak,food_value_score_visible, enemy_value_score_visible, streak, total_food, poop
 
     food_time -= dt # dt = changement du temps
     if food_time <= 0.0: # quand le sablier est vide ou en dessous de 0
@@ -365,10 +368,10 @@ def food_update(dt):  #delta time = (la différence de temps) le temps qui s'est
             clock.schedule_interval(set_food_value_score, 0.8)
             
             ship.move_timer = 1
+            total_food += 1
             streak += 1
-            # if combo % 3 == 0 :   règle si par incrémentation de 3
-            # sinon que des if elif
-            
+
+           
     # ____________ Darkmatter/Poop generating ____________
             set_player_eat_then_poop()
 
@@ -419,7 +422,7 @@ def enemy_action_trigger_update(dt):
 
     enemy_action_trigger.pos = [enemy_action_trigger.pos[0] + mvt_x, enemy_action_trigger.pos[1] + mvt_y]
     if player.colliderect(enemy_action_trigger):
-        #enemy_action_trigger_visible = False
+        #enemy_action_trigger_visible = False  would make it disappear too abruptly
         sounds.slap_umph.play()
         set_player_hit_angry()
         enemy_action_trigger_speed = [0, enemy_action_trigger_maxspeed]
@@ -428,17 +431,17 @@ def enemy_action_trigger_update(dt):
 
 
 def update_game(dt):
-    global streak, score, malus_taken
-    # quand j'aurais défini les conditions de game over :
-    # global score, game_over
-    # if game_over:
-    #   return
+    global streak, score, malus_taken, score, game_over
+    
+    if game_over:
+        music.stop() # doesn't work ?
+        return
+    #je sais pas s'il faut un return :s
+
 
     if pause :
+        music.pause()
         return
-    
-    #if game_over : # je sais pas s'il faut ça :s
-        #return
 
     if dt > 0.5 :
         return
@@ -464,7 +467,7 @@ def update_game(dt):
 
     # *** moving ship ***
     ship.move(dt)
-    # Clock ci-dessous ne fonctionne pas !
+
     if player.colliderect(enemy_action_trigger):
         malus_taken = True
         set_ship_decelarate()
@@ -475,7 +478,8 @@ def update_game(dt):
 
 
 def update_menu(dt):
-    #sounds.menu_music.play(-1)
+    music.play('menu_music')
+    music.set_volume(0.2)
     pass
 
 # ++++++++ General Update here ++++++++
@@ -516,6 +520,7 @@ def on_key_down(key):
     else :
         if key == keys.SPACE:
             pause = not pause
+            music.unpause() #pas sûr que je dois le mettre ici
             
 
 def set_enemy_action_animate():
