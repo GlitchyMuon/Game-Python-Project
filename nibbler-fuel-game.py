@@ -18,10 +18,11 @@ BOX = Rect((15, 100, 200, 50))
 
 game_over = False
 score = 0
+
 # pour les différents scores, p-e que je devrais faire des sous-dossiers, et faire un dirlist.
 malus = 300
 malus_taken = False
-food_eaten = 0
+streak = 0
 food_value_score_visible = False
 enemy_value_score_visible = False
 pause = False
@@ -87,10 +88,11 @@ foodnames = [] # les fichiers
 for food_file in listdir(r'images/all_food'):
     if isfile(r'images/all_food/' + food_file):
         foodnames.append(food_file)
+        #be sure to understand the use of this codelines for later project
 
 food_speed = [0, 240] # 0 en x car ne va ni vers la gauche(-n) ni droite(n positif). En y nombre positif car va vers le bas. Si négatif, va vers le haut
 
-#************************** Enemy = Fotran Beer ****************************
+#************************** Enemy = Fortran Beer ****************************
 enemy_time = randint(10, 15) # temps avant le premier
 enemy_list = []
 enemy_speed = [0, 240]
@@ -113,7 +115,7 @@ enemy_action_trigger_time = 0
 poop_list = []
 poop_visible = False
 
-class Poop(Actor):
+class Poop(Actor): #méthode héritage
     def __init__(self):
         super().__init__("darkmatter_rotated", anchor= ['center', 'bottom'])
         
@@ -138,63 +140,57 @@ class Ship : # ou Ship(Actor)
         self.sprite.pos = (WIDTH, images.planet_express.get_height()*0.33-33)
         self.direction = [-1, 0]
         self.speed = 10
-        self.boostspeed = 30        # still need to do something with this and combo score
+        self.boostspeed = 30        # still need to do something with this and streak
         self.boostspeed_timer = 0   # ditto
-        self.move_timer = 0         # ditto
+        self.move_timer = 0        
         self.burstflamesprite_dflt = Actor('xsmall_burst', anchor=['left','center'])
         self.burstflamesprite_dflt.scale = 0.50
         self.burstflamesprite_dflt.pos = (self.sprite.pos[0], self.sprite.pos[1])
-        # code ci-dessous pas nécessair mnt que j'ai mis dans draw(self):
-        """self.burstflamesprite_s = Actor('small_burst', anchor=['left','center'])
-        self.burstflamesprite_s.scale = 0.50
-        self.burstflamesprite_s.pos = (self.sprite.pos[0], self.sprite.pos[1])
-        self.burstflamesprite_m = Actor('medium_burst', anchor=['left','center'])
-        self.burstflamesprite_m.scale = 0.50
-        self.burstflamesprite_m.pos = (self.sprite.pos[0], self.sprite.pos[1])
-        self.burstflamesprite_l = Actor('large_burst', anchor=['left','center'])
-        self.burstflamesprite_l.scale = 0.50
-        self.burstflamesprite_l.pos = (self.sprite.pos[0], self.sprite.pos[1])
-        self.burstflamesprite_xl = Actor('xlarge_burst', anchor=['left', 'center'])
-        self.burstflamesprite_xl.scale = 0.50
-        self.burstflamesprite_xl.pos = (self.sprite.pos[0], self.sprite.pos[1]) """
+        
+        self.penality = False
     
     def move(self, dt):
-        if self.move_timer > 0 :
-            self.move_timer -= dt
-
-            x = self.sprite.pos[0] + self.speed * self.direction[0] * dt
+        global streak
+        if self.penality == True:
+            x = self.sprite.pos[0] + self.speed * -self.direction[0] * dt
             y = self.sprite.pos[1] + self.speed * self.direction[1] * dt
             self.sprite.pos = [x , y]
+
+        elif self.move_timer > 0 :
+            self.move_timer -= dt
+            finalspeed= self.speed *streak * 0.5
+            x = self.sprite.pos[0] + finalspeed * self.direction[0] * dt
+            y = self.sprite.pos[1] + finalspeed * self.direction[1] * dt
+            self.sprite.pos = [x , y]
         self.burstflamesprite_dflt.pos = (self.sprite.pos[0], self.sprite.pos[1])
+        if self.sprite.pos[0] > WIDTH :
+            self.sprite.pos = (WIDTH, self.sprite.pos[1]) 
+            #parenthèses facultatif ici, sauf dans un print car la virgule dans beaucoup de cas sépare les éléments.
         
+        if streak > 0:
+            self.boostspeed = 30
+        
+
     def draw(self):
-        global food_eaten
+        global streak
         self.sprite.draw()
         self.burstflamesprite_dflt.draw()
 
-        # code not working !  
-        if food_eaten == 3:
-            self.burstflamesprite_dflt.image = 'small_burst'
-        elif player.colliderect(enemy_action_trigger):
-            self.burstflamesprite_dflt.image = 'xsmall_burst'
-        if food_eaten == 5:
-            self.burstflamesprite_dflt.image = 'medium_burst'
-        elif player.colliderect(enemy_action_trigger) :
-            self.burstflamesprite_dflt.image = 'small_burst'
-        if food_eaten == 7 :
-            self.burstflamesprite_dflt.image = 'large_burst'
-        elif player.colliderect(enemy_action_trigger):
-            self.burstflamesprite_dflt.image = 'medium_burst'
-        if food_eaten == 10:
+        # reverted logic order from big to small
+        if streak >= 10:
             self.burstflamesprite_dflt.image = 'xlarge_burst'
-        elif player.colliderect(enemy_action_trigger):
+        elif streak >= 7 :
             self.burstflamesprite_dflt.image = 'large_burst'
+        elif streak >= 5:
+            self.burstflamesprite_dflt.image = 'medium_burst'
+        elif streak >= 3:
+            self.burstflamesprite_dflt.image = 'small_burst'
+        elif streak == 0 :
+            self.burstflamesprite_dflt.image = 'xsmall_burst'
+        
         
     def decelerate(self):
-        self.speed *= 1.1
-        #print(self.speed)
-        #self.boostspeed *= 1.25        peut pas mettre cette même valeur car le ship sort de l'écran !
-        self.direction = [+1, 0] # à mettre dans le move ? et redéfinir toutes les conditions de déceleration
+        self.penality = True
         
 
 ship = Ship() #crée l'instance
@@ -215,6 +211,7 @@ def draw_menu():
 
     screen.draw.text(menu.author, (WIDTH-275, HEIGHT-30), color="seagreen", gcolor='lightcoral', owidth=0.25, ocolor= "darkslategray", fontsize= 20, fontname="retrogaming")
 
+
 def draw_game(): # ce qui est dans le draw, ne doit que draw. On peut mettre des if (pas gérer de collision, ni update)
     global food # mis la variable globale, car error de call before assignement de food
 
@@ -228,7 +225,7 @@ def draw_game(): # ce qui est dans le draw, ne doit que draw. On peut mettre des
 
     screen.draw.textbox(str(score), (15, 100, 200, 50), color=(255,255,255), gcolor="green")
 
-    screen.draw.text("Quantity of food eaten : " + str(food_eaten), (20, 160), color=(255,255,255), gcolor="gold", fontsize= 40)
+    screen.draw.text("Quantity of food eaten : " + str(streak), (20, 160), color=(255,255,255), gcolor="gold", fontsize= 40)
     
     for poop in poop_list :
         poop.draw()
@@ -299,9 +296,9 @@ def draw_game(): # ce qui est dans le draw, ne doit que draw. On peut mettre des
         game_over = True
         if game_over == True : 
             screen.clear()
-            screen.draw.text('Game Over', center=(WIDTH/2, (HEIGHT/2 - 200)), color="red", gcolor="yellow", owidth=0.25, ocolor="grey", fontsize=100)
+            screen.draw.text('G a m e  O v e r', center=(WIDTH/2, (HEIGHT/2 - 300)), color="red", gcolor="yellow", owidth=0.25, ocolor="white", fontsize=125, fontname = "rh-shmatter")
             # still need to adjust score height !
-            screen.draw.text('Score: ' + str(round(score)), center=(WIDTH/2, HEIGHT/2+500), color="gold", owidth=0.25, ocolor="grey", fontsize=50)
+            screen.draw.text('Highscore: ' + str(round(score)), center=(WIDTH/2, (HEIGHT/2-500)), color="gold", owidth=0.25, ocolor="grey", fontsize=70)
             gameover_img.pos = [WIDTH/2, (HEIGHT/2 + 100)]
             gameover_img.draw()
     
@@ -320,7 +317,6 @@ def draw():
         # penser au game over !
     else :
         draw_game()
-
 
 
 def random_pos():
@@ -342,7 +338,7 @@ def random_pos_enemy():
 
 
 def food_update(dt):  #delta time = (la différence de temps) le temps qui s'est passé depuis la précédente update (1/60e de seconde)
-    global food_time, food, score, food_value_score_visible, enemy_value_score_visible, food_eaten, poop
+    global food_time, food, score, streak,food_value_score_visible, enemy_value_score_visible, streak, poop
 
     food_time -= dt # dt = changement du temps
     if food_time <= 0.0: # quand le sablier est vide ou en dessous de 0
@@ -367,12 +363,12 @@ def food_update(dt):  #delta time = (la différence de temps) le temps qui s'est
             score += 100
             food_value_score_visible = True
             clock.schedule_interval(set_food_value_score, 0.8)
+            
             ship.move_timer = 1
-            food_eaten += 1
+            streak += 1
             # if combo % 3 == 0 :   règle si par incrémentation de 3
             # sinon que des if elif
             
-
     # ____________ Darkmatter/Poop generating ____________
             set_player_eat_then_poop()
 
@@ -381,9 +377,8 @@ def food_update(dt):  #delta time = (la différence de temps) le temps qui s'est
             # pas de break car dans le casse-brique, touche une brique à la foi, ici, plusieurs food peuvent collide
 
 
-
 def enemy_update(dt):
-    global enemy_time, enemy, score, enemy_value_score_visible, enemy_action_trigger_visible, enemy_action_trigger_speed, malus
+    global enemy_time, enemy, score, streak, enemy_value_score_visible, enemy_action_trigger_visible, enemy_action_trigger_speed, malus
 
     enemy_time -= dt 
     if enemy_time <= 0.0:
@@ -403,6 +398,7 @@ def enemy_update(dt):
             enemy_list.remove(enemy)
             sounds.glug_glug_glug.play()
             score -= malus
+            streak = 0
             player.life -= malus
             set_enemy_action_animate()
             enemy_value_score_visible = True
@@ -412,6 +408,7 @@ def enemy_update(dt):
             enemy_action_trigger.pos = [WIDTH -66, HEIGHT-player.height]
         if enemy.pos[1] >= HEIGHT -10:
             enemy_list.remove(enemy)
+
 
 def enemy_action_trigger_update(dt):
     global enemy_action_trigger, enemy_action_trigger_speed, enemy_action_trigger_visible, enemy_action_trigger_time, ROTATION_SPEED
@@ -431,7 +428,7 @@ def enemy_action_trigger_update(dt):
 
 
 def update_game(dt):
-    global food_eaten, score, malus_taken
+    global streak, score, malus_taken
     # quand j'aurais défini les conditions de game over :
     # global score, game_over
     # if game_over:
@@ -461,6 +458,7 @@ def update_game(dt):
 
     food_update(dt)
     enemy_update(dt)
+
     if enemy_action_trigger_visible == True:
         enemy_action_trigger_update(dt)
 
@@ -472,8 +470,6 @@ def update_game(dt):
         set_ship_decelarate()
         clock.schedule_interval(set_ship_move_normal, 1) # try different times/secs
        
-
-
     for poop in poop_list :
         poop.update(dt)
 
@@ -569,9 +565,7 @@ def set_ship_decelarate():
 def set_ship_move_normal():
     global malus_taken
     malus_taken = False
-    ship.direction = [-1, 0]
-    ship.speed = 10
-    ship.boostspeed = 30
+    ship.penality = False
 
 
 
