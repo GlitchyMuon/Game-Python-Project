@@ -15,24 +15,31 @@ ROTATION_SPEED = 80
 WHITE = 255, 255, 255
 BOX = Rect((15, 100, 200, 50))
 
-game_time = 0
+fullscreen = True
+pause = False
 game_over = False
-score = 0
+win = False
+
 
 # pour les différents scores, p-e que je devrais faire des sous-dossiers, et faire un dirlist.
+game_time = 0
+score = 0
 malus = 300
 malus_taken = False
 streak = 0
 total_food = 0
 food_value_score_visible = False
 enemy_value_score_visible = False
-pause = False
-fullscreen = True
+
 
 background = Actor("space_planet_left")
 pause_img = Actor("hypnotoad_effect_filter_transparent_noborders")
+
 gameover_img = Actor("planet_express_crash")
 gameover_bg = Actor("nasa_asteroid_1440x900")
+
+win_img = Actor("futurama_yipee")
+
 # ************************** Menu Class *********************************
 
 class Menu():
@@ -217,7 +224,7 @@ def draw_menu():
 
 
 def draw_game(): # ce qui est dans le draw, ne doit que draw. On peut mettre des if (pas gérer de collision, ni update)
-    global food, total_food, game_over # mis la variable globale, car error de call before assignement de food
+    global food, total_food, game_over, pause, win 
 
     # si je veux fullscreen sans pouvoir en sortir :    screen.surface = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)
 
@@ -311,7 +318,13 @@ def draw_game(): # ce qui est dans le draw, ne doit que draw. On peut mettre des
         # put Highscore when Highscore.dat has been implemented
         screen.draw.text('Score: ' + str(score), center=(WIDTH/2, (HEIGHT/2-400)), color="gold", gcolor="darkgoldenrod", owidth=0.25, ocolor="grey", fontsize=70)
         gameover_img.pos = [WIDTH/2, (HEIGHT/2 + 100)]
-        
+
+    # ____________ Win Screen ____________
+
+    if win :
+        screen.draw.text("You won ! \n The ship has arrived succesfully !", center=(WIDTH/2, (HEIGHT/2 -200)), color="seagreen3", gcolor="lightgoldenrod", owidth=0.25, ocolor="grey", fontsize=100, fontname="ocraext")
+        win_img.pos= [WIDTH/2, (HEIGHT/2 + 100)]
+        win_img.draw()
     
     
 # ++++++++ General Draw ++++++++++
@@ -447,7 +460,7 @@ def enemy_action_trigger_update(dt):
 
 
 def update_game(dt):
-    global streak, score, malus_taken, score, game_over
+    global streak, score, malus_taken, score, game_over, win
     
     if game_over:
         music.stop() # doesn't work ?
@@ -458,6 +471,9 @@ def update_game(dt):
     if pause :
         music.pause()
         return
+
+    if ship.sprite.pos[0] == 0 : # doesn't work T__T
+        win = True
 
     if dt > 0.5 :
         return
@@ -493,6 +509,7 @@ def update_game(dt):
     for poop in poop_list :
         poop.update(dt)
 
+    
 
 def update_menu(dt):
     print(menu_visible)
