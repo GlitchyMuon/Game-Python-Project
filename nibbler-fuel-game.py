@@ -22,6 +22,7 @@ win = False
 
 
 # pour les différents scores, p-e que je devrais faire des sous-dossiers, et faire un dirlist.
+
 game_time = 0
 score = 0
 malus = 300
@@ -320,11 +321,17 @@ def draw_game(): # ce qui est dans le draw, ne doit que draw. On peut mettre des
         gameover_img.pos = [WIDTH/2, (HEIGHT/2 + 100)]
 
     # ____________ Win Screen ____________
+    if ship.sprite.pos[0] <= 0+images.planet_express.get_width()*0.33 : # doesn't work T__T
+        win = True
 
-    if win :
-        screen.draw.text("You won ! \n The ship has arrived succesfully !", center=(WIDTH/2, (HEIGHT/2 -200)), color="seagreen3", gcolor="lightgoldenrod", owidth=0.25, ocolor="grey", fontsize=100, fontname="ocraext")
-        win_img.pos= [WIDTH/2, (HEIGHT/2 + 100)]
+        screen.clear()
+
+        #screen.fill((61,55,21))    #decide if bgcolor black or this brown
+        win_img.pos= [WIDTH/2, (HEIGHT/2 + 100)]    #(HEIGHT/2 + 100) if smaller img
         win_img.draw()
+        screen.draw.text("You won ! \n The ship has arrived succesfully !", center=(WIDTH/2, (HEIGHT/2 -250)), color="seagreen3", gcolor="lightgoldenrod", owidth=0.25, ocolor="grey", fontsize=60, fontname="ocraext")
+        screen.draw.text('Score: ' + str(score), center=(WIDTH/2, (HEIGHT/2-390)), color="gold", gcolor="darkgoldenrod", owidth=0.25, ocolor="grey", fontsize=60)
+       
     
     
 # ++++++++ General Draw ++++++++++
@@ -414,7 +421,7 @@ def enemy_update(dt):
         elif game_time >= 20 :
             enemy_time = randint(3,5)
         else :
-            enemy_time = randint(5,7)
+            enemy_time = randint(5,7)       #should maybe increment food too
 
         pos = enemy.pos
 
@@ -463,22 +470,23 @@ def update_game(dt):
     global streak, score, malus_taken, score, game_over, win
     
     if game_over:
-        music.stop() # doesn't work ?
+        music.stop()
         return
-    #je sais pas s'il faut un return :s
-
+    
 
     if pause :
         music.pause()
+        return  # permet d'arrêter l'update du game !!!
+
+    if win :
+        music.stop()
         return
 
-    if ship.sprite.pos[0] == 0 : # doesn't work T__T
-        win = True
 
     if dt > 0.5 :
         return
         
-    if not pause:
+    if not pause :
         pos = player.pos
         if pos[0] > WIDTH -5:
             pos[0] = WIDTH -5
@@ -512,7 +520,6 @@ def update_game(dt):
     
 
 def update_menu(dt):
-    print(menu_visible)
     if not music.is_playing('menu_music'): #vérifier que la musique est en train de jouer ou non
         music.play('menu_music')
         music.set_volume(0.2)
