@@ -47,12 +47,14 @@ class Menu():
     def __init__(self):
         self.background = Actor('space_planet_bottom')
         self.icon = Actor('nibbler_spaceship')
-        self.icon.size= (500, 500)
+        self.icon.size = (500, 500)
         self.icon.pos = (WIDTH/2, HEIGHT/2)
         self.welcome_txt = "Welcome to Space Gobbler !"
         #self.welcome_txt.pos = (WIDTH/2, (self.icon.pos[1]-30))     pos is not recognized because str
         self.title_txt = "Press any key"
-        self.author= "Made by GlitchyMuon"
+        self.author = "Made by GlitchyMuon"
+        self.rules = "++ RULES ++\n\nGuide Nibbler beneath the falling food.\n\nThe darkmatter that he poops will fuel the ship\n\nTo win, the ship has to reach the planet\n(left of the screen)"
+        self.tip = "++ Tips ++\n\nBeware of a certain DRINK !!!\n\nThere is a catch... ! ;)\n\nKeep an eye on your Hearts !"
 
     def draw(self):
         self.background.draw()
@@ -81,14 +83,14 @@ player = Player()
 
 # ************************** player life actor *****************************
 heart1 = Actor('heart_full')
-heart1.scale = 1
+heart1.scale = 1.25
 heart1.pos = [30, 70] # or [70, 70] would be centered on textbox
 heart2 = Actor('heart_full')
-heart2.scale = 1
-heart2.pos = [(heart1.pos[0]+41), heart1.pos[1]]
+heart2.scale = 1.25
+heart2.pos = [(heart1.pos[0]+51), heart1.pos[1]]    # +41 if scale 1 (smaller)
 heart3 = Actor('heart_full')
-heart3.scale = 1
-heart3.pos = [(heart2.pos[0]+41), heart1.pos[1]]
+heart3.scale = 1.25
+heart3.pos = [(heart2.pos[0]+51), heart1.pos[1]]
 
 
 # ************************** food ******************************************
@@ -103,7 +105,7 @@ for food_file in listdir(r'images/all_food'):
 food_speed = [0, 240] # 0 en x car ne va ni vers la gauche(-n) ni droite(n positif). En y nombre positif car va vers le bas. Si négatif, va vers le haut
 
 #************************** Enemy = Fortran Beer ****************************
-enemy_time = randint(5, 10) # temps avant le premier
+enemy_time = randint(5, 8) # temps avant le premier
 enemy_list = []
 enemy_speed = [0, 240]
 
@@ -219,7 +221,11 @@ def draw_menu():
 
     screen.draw.text(menu.welcome_txt, center=(WIDTH/2, (HEIGHT/2-300)), color="cyan", gcolor="magenta", owidth=0.25, ocolor="grey", fontsize=80, fontname="ocraext")
 
-    screen.draw.text(menu.title_txt, center =(WIDTH/2, (HEIGHT-100)), color="purple", gcolor='blue', owidth=0.25, ocolor="grey", fontsize= 30, fontname ="1up")
+    screen.draw.text(menu.rules, (0, (HEIGHT/2-150)), color="white", owidth=0.05, ocolor="grey", align="center", lineheight=1.5, fontsize=18, fontname="retrogaming")
+
+    screen.draw.text(menu.tip, (WIDTH-430, (HEIGHT/2-150)), color="white", owidth=0.05, ocolor="grey",  align="center", lineheight=1.5, fontsize=18, fontname="retrogaming")
+
+    screen.draw.text(menu.title_txt, center=(WIDTH/2, (HEIGHT-100)), color="purple", gcolor='blue', owidth=0.25, ocolor="grey", fontsize= 30, fontname ="1up")
 
     screen.draw.text(menu.author, (WIDTH-275, HEIGHT-30), color='seagreen', gcolor='lightcoral', owidth=0.25, ocolor= 'darkslategray', fontsize= 20, fontname="retrogaming")
 
@@ -229,7 +235,7 @@ def draw_game(): # ce qui est dans le draw, ne doit que draw. On peut mettre des
 
     # si je veux fullscreen sans pouvoir en sortir :    screen.surface = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)
 
-    screen.clear() # à mettre dans le if game_over
+    screen.clear()
     # screen.fill((1, 7, 46)) si pas de background
     background.draw()
 
@@ -345,7 +351,7 @@ def draw():
     if menu_visible == True:
         draw_menu()
     #elif KeyboardEvent or pygame.MOUSEBUTTONDOWN == True:  # CHECK si fonctionne !
-        # penser au game over !
+    
     else :
         draw_game()
 
@@ -377,6 +383,9 @@ def food_update(dt):  #delta time = (la différence de temps) le temps qui s'est
         food.pos = random_pos()
         food_list.append(food)
         food_time = randint(1,3)
+        # check following code if too many objects popping, if yes : adjust randint
+        if game_time >= 20:
+            food_time = randint(0,2)
         pos= food.pos
 
     # ____________ Collision with player and/or bottom screen ____________
@@ -416,9 +425,9 @@ def enemy_update(dt):
         enemy = Actor("fortran_beer", anchor=['center', 'top'])
         enemy.pos = random_pos_enemy()
         enemy_list.append(enemy)
-        if game_time >= 30:
-            enemy_time = randint(1,3)
-        elif game_time >= 20 :
+        if game_time >= 20:
+            enemy_time = randint(0,3)
+        elif game_time >= 10 :
             enemy_time = randint(3,5)
         else :
             enemy_time = randint(5,7)       #should maybe increment food too
@@ -469,6 +478,11 @@ def enemy_action_trigger_update(dt):
 def update_game(dt):
     global streak, score, malus_taken, score, game_over, win
     
+    #if not music.is_playing('neo_crey_jump_to_win'):   # Makes win screen lag !!
+        #music.queue('neocrey_jump_to_win')
+        #music.set_volume(0.2)
+
+
     if game_over:
         music.stop()
         return
@@ -479,7 +493,10 @@ def update_game(dt):
         return  # permet d'arrêter l'update du game !!!
 
     if win :
-        music.stop()
+        #music.fadeout(0.15)
+        if music.is_playing('neocrey_jump_to_win'):
+            music.stop()
+        #music.play_once('nebula')       #only works when I press ESC or move the window ?!
         return
 
 
@@ -520,8 +537,9 @@ def update_game(dt):
     
 
 def update_menu(dt):
-    if not music.is_playing('menu_music'): #vérifier que la musique est en train de jouer ou non
-        music.play('menu_music')
+    if not music.is_playing('menu_music'): 
+        music.play_once('menu_music')
+        music.queue('neocrey_jump_to_win')
         music.set_volume(0.2)
 
 
@@ -535,6 +553,9 @@ def update(dt):
         update_menu(dt)
     else :
         update_game(dt)
+    # music.fadeout(0.25)       #Makes game lag !!! 
+        
+        
 
 
 def on_mouse_move(pos): 
