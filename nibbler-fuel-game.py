@@ -172,7 +172,8 @@ class Ship : # ou Ship(Actor)
 
         elif self.move_timer > 0 :
             self.move_timer -= dt
-            finalspeed= self.speed *streak * 0.8
+            finalspeed= self.speed *streak * 0.5    #tweaked from 0.8 to 0.5 for more longer gametime and also since the ship has to reach a shorter distance to win
+
             x = self.sprite.pos[0] + finalspeed * self.direction[0] * dt
             y = self.sprite.pos[1] + finalspeed * self.direction[1] * dt
             self.sprite.pos = [x , y]
@@ -283,8 +284,13 @@ def draw_game(): # ce qui est dans le draw, ne doit que draw. On peut mettre des
         heart1.image = 'heart_empty'
     heart1.draw()
 
+    # ____________ Foods draw ____________
+    
     for food in food_list: 
         food.draw()
+
+    # ____________ Fortran Beer/Enemy draw ____________
+
     
     for enemy in enemy_list:
         enemy.draw()
@@ -306,9 +312,10 @@ def draw_game(): # ce qui est dans le draw, ne doit que draw. On peut mettre des
     if food_value_score_visible: 
         screen.draw.text("100", center=((player.pos[0]+30), (player.pos[1]-player.height-10)), color="white",gcolor="yellow", fontsize= 35)
 
-    # ____________ hurt score ____________
+    # ____________ Hurt score ____________
     if enemy_value_score_visible:
         screen.draw.text("-200", center=((player.pos[0]+30), (player.pos[1]-player.height-10)), color="white", gcolor="red", fontsize= 35)
+
 
     # ____________ Game Over Screen ____________
     if player.life == 0 :
@@ -321,13 +328,14 @@ def draw_game(): # ce qui est dans le draw, ne doit que draw. On peut mettre des
         gameover_bg.draw()
         gameover_img.draw() 
 
-        screen.draw.text('G a m e  O v e r', center=(WIDTH/2, (HEIGHT/2 - 300)), color="red", gcolor="yellow", owidth=0.30, ocolor="white", fontsize=150, fontname = "rh-shmatter")
+        screen.draw.text('G a m e  O v e r', center=(WIDTH/2, (HEIGHT/2 - 200)), color="red", gcolor="yellow", owidth=0.30, ocolor="white", fontsize=150, fontname = "rh-shmatter")
         # put Highscore when Highscore.dat has been implemented
-        screen.draw.text('Score: ' + str(score), center=(WIDTH/2, (HEIGHT/2-400)), color="gold", gcolor="darkgoldenrod", owidth=0.25, ocolor="grey", fontsize=70)
+        screen.draw.text('Score: ' + str(score), center=(WIDTH/2, (HEIGHT/2-380)), color="gold", gcolor="darkgoldenrod", owidth=0.25, ocolor="grey", fontsize=70)
         gameover_img.pos = [WIDTH/2, (HEIGHT/2 + 100)]
 
+
     # ____________ Win Screen ____________
-    if ship.sprite.pos[0] <= 0+images.planet_express.get_width()*0.33 : # doesn't work T__T
+    if ship.sprite.pos[0] <= 220+images.planet_express.get_width()*0.33 : # 0 if end of screen. 215 if planet orbit
         win = True
 
         screen.clear()
@@ -380,13 +388,14 @@ def food_update(dt):  #delta time = (la différence de temps) le temps qui s'est
     food_time -= dt # dt = changement du temps
     if food_time <= 0.0: # quand le sablier est vide ou en dessous de 0
         food = Actor('all_food/' + choice(foodnames), anchor= ['center', 'top']) # à mettre dans update
-        food.pos = random_pos()
+        pos = food.pos
+        pos = random_pos()
         food_list.append(food)
         food_time = randint(1,3)
         # check following code if too many objects popping, if yes : adjust randint
-        if game_time >= 20:
+        if game_time >= 25:
             food_time = randint(0,2)
-        pos= food.pos
+        food.pos = pos
 
     # ____________ Collision with player and/or bottom screen ____________
     mvt_x = food_speed[0] * dt #* 1/60e de sec
@@ -423,16 +432,17 @@ def enemy_update(dt):
     enemy_time -= dt 
     if enemy_time <= 0.0:
         enemy = Actor("fortran_beer", anchor=['center', 'top'])
-        enemy.pos = random_pos_enemy()
+        pos = enemy.pos
+        pos = random_pos_enemy()
         enemy_list.append(enemy)
         if game_time >= 20:
-            enemy_time = randint(0,3)
+            enemy_time = randint(1,3)
         elif game_time >= 10 :
             enemy_time = randint(3,5)
         else :
             enemy_time = randint(5,7)       #should maybe increment food too
 
-        pos = enemy.pos
+        enemy.pos = pos
 
       # *** enemy collision with player ***
     mvt_x = enemy_speed[0] * dt
@@ -454,6 +464,7 @@ def enemy_update(dt):
             enemy_action_trigger_visible = True
             enemy_action_trigger_speed = [-enemy_action_trigger_maxspeed,0]
             enemy_action_trigger.pos = [WIDTH -66, HEIGHT-player.height]
+            
         if enemy.pos[1] >= HEIGHT -10:
             enemy_list.remove(enemy)
 
@@ -466,6 +477,7 @@ def enemy_action_trigger_update(dt):
     enemy_action_trigger.angle += ROTATION_SPEED * dt
 
     enemy_action_trigger.pos = [enemy_action_trigger.pos[0] + mvt_x, enemy_action_trigger.pos[1] + mvt_y]
+
     if player.colliderect(enemy_action_trigger):
         #enemy_action_trigger_visible = False  would make it disappear too abruptly
         sounds.slap_umph.play()
@@ -478,25 +490,29 @@ def enemy_action_trigger_update(dt):
 def update_game(dt):
     global streak, score, malus_taken, score, game_over, win
     
-    #if not music.is_playing('neo_crey_jump_to_win'):   # Makes win screen lag !!
+    #if not music.is_playing('neocrey_jump_to_win'):   # Makes win screen lag !!
         #music.queue('neocrey_jump_to_win')
         #music.set_volume(0.2)
-
-
-    if game_over:
-        music.stop()
-        return
-    
 
     if pause :
         music.pause()
         return  # permet d'arrêter l'update du game !!!
 
+    if game_over:
+        if music.is_playing('neocrey_jump_to_win'):
+            music.stop()
+            sounds.icy_game_over.play()    #or this_is_game_over
+        data_file = open(r"data/hiscore.dat", "a")
+        data_file.write(str(score))
+        data_file.close()
+        return
+    
     if win :
         #music.fadeout(0.15)
         if music.is_playing('neocrey_jump_to_win'):
             music.stop()
-        #music.play_once('nebula')       #only works when I press ESC or move the window ?!
+            sounds.littlerobotsoundfactory_jingle_win_00.play()     #works !!! so doesn't if I wanna play another music
+        #wmusic.play_once('nebula')       #only works when I press ESC or or continously play if I drag the window ?!
         return
 
 
@@ -537,9 +553,11 @@ def update_game(dt):
     
 
 def update_menu(dt):
-    if not music.is_playing('menu_music'): 
-        music.play_once('menu_music')
-        music.queue('neocrey_jump_to_win')
+    if not music.is_playing('neocrey_jump_to_win'):
+        music.play('neocrey_jump_to_win')
+    #if not music.is_playing('menu_music'): #intro music
+        #music.play_once('menu_music')
+        #music.queue('neocrey_jump_to_win')
         music.set_volume(0.2)
 
 
