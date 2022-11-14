@@ -503,7 +503,7 @@ def update_game(dt):
             music.stop()
             sounds.icy_game_over.play()    #or this_is_game_over
         data_file = open(r"data/hiscore.dat", "a")
-        data_file.write(str(score))
+        data_file.write(str(score) + "\n")
         data_file.close()
         return
     
