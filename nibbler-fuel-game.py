@@ -19,6 +19,7 @@ fullscreen = True
 pause = False
 game_over = False
 win = False
+record_win = False
 
 
 # pour les différents scores, p-e que je devrais faire des sous-dossiers, et faire un dirlist.
@@ -232,7 +233,7 @@ def draw_menu():
 
 
 def draw_game(): # ce qui est dans le draw, ne doit que draw. On peut mettre des if (pas gérer de collision, ni update)
-    global food, total_food, game_over, pause, win, data_file
+    global food, total_food, game_over, pause, win, data_file, record_win
 
     # si je veux fullscreen sans pouvoir en sortir :    screen.surface = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)
 
@@ -322,6 +323,7 @@ def draw_game(): # ce qui est dans le draw, ne doit que draw. On peut mettre des
         if not game_over :
             data_file = open(r"data/hiscore.dat", "a")
             data_file.write(str(score)+ "\n")
+            data_file.close()
 
         game_over = True
 
@@ -341,12 +343,12 @@ def draw_game(): # ce qui est dans le draw, ne doit que draw. On peut mettre des
 
         hiscore = -1000000000000
         for line in hiscore_list:
-            if line:
+            if line: #s'il y a une ligne
                 s = int(line.strip())
                 if s > hiscore:
                     hiscore = s
 
-            screen.draw.text('Highscore: ' + str(hiscore), center=(WIDTH/2, (HEIGHT/2-310)), color="gold2", gcolor="darkgoldenrod", owidth=0.25, ocolor="grey", fontsize=70)
+        screen.draw.text('Highscore: ' + str(hiscore), center=(WIDTH/2, (HEIGHT/2-310)), color="gold2", gcolor="darkgoldenrod", owidth=0.25, ocolor="grey", fontsize=70)
 
         screen.draw.text('Score: ' + str(score), center=(WIDTH/2, (HEIGHT/2-380)), color="gold", gcolor="darkgoldenrod", owidth=0.25, ocolor="grey", fontsize=70)
         gameover_img.pos = [WIDTH/2, (HEIGHT/2 + 100)]
@@ -355,16 +357,36 @@ def draw_game(): # ce qui est dans le draw, ne doit que draw. On peut mettre des
 
     # ____________ Win Screen ____________
     if ship.sprite.pos[0] <= 220+images.planet_express.get_width()*0.33 : # 0 if end of screen. 215 if planet orbit
+        if not win and record_win == False :
+            record_win = record_win = True
+            data_file = open(r"data/hiscore.dat", "a")
+            data_file.write(str(score)+ "\n")
+            data_file.close()
+
         win = True
+
 
         screen.clear()
 
         #screen.fill((61,55,21))    #decide if bgcolor black or this brown
         win_img.pos= [WIDTH/2, (HEIGHT/2 + 100)]    #(HEIGHT/2 + 100) if smaller img
         win_img.draw()
-        screen.draw.text("You won ! \n The ship has arrived succesfully !", center=(WIDTH/2, (HEIGHT/2 -250)), color="seagreen3", gcolor="lightgoldenrod", owidth=0.25, ocolor="grey", fontsize=60, fontname="ocraext")
+        screen.draw.text("You won ! \n The ship has arrived succesfully !", center=(WIDTH/2, (HEIGHT/2 -220)), color="seagreen3", gcolor="lightgoldenrod", owidth=0.25, ocolor="grey", fontsize=60, fontname="ocraext")
+
         screen.draw.text('Score: ' + str(score), center=(WIDTH/2, (HEIGHT/2-390)), color="gold", gcolor="darkgoldenrod", owidth=0.25, ocolor="grey", fontsize=60)
-       
+
+        data_file = open(r"data/hiscore.dat")
+        hiscore_list = data_file.readlines()
+        data_file.close()
+
+        hiscore = -1000000000000
+        for line in hiscore_list:
+            if line: #s'il y a une ligne
+                s = int(line.strip())
+                if s > hiscore:
+                    hiscore = s
+        
+        screen.draw.text('Highscore: ' + str(hiscore), center=(WIDTH/2, (HEIGHT/2-310)), color="gold", gcolor="goldenrod1", owidth=0.25, ocolor="grey", fontsize=60)
     
     
 # ++++++++ General Draw ++++++++++
@@ -381,8 +403,6 @@ def draw():
     
     else :
         draw_game()
-
-    
 
 
 def random_pos():
@@ -486,8 +506,9 @@ def enemy_update(dt):
             enemy_action_trigger_speed = [-enemy_action_trigger_maxspeed,0]
             enemy_action_trigger.pos = [WIDTH -66, HEIGHT-player.height]
             
-        if enemy.pos[1] >= (HEIGHT-15):
-            enemy_list.remove(enemy)
+        if enemy.pos[1] >= (HEIGHT-10):
+            if enemy in enemy_list :
+                enemy_list.remove(enemy)
 
 
 def enemy_action_trigger_update(dt):
