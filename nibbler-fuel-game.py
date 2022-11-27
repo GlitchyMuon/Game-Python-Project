@@ -232,7 +232,7 @@ def draw_menu():
 
 
 def draw_game(): # ce qui est dans le draw, ne doit que draw. On peut mettre des if (pas gérer de collision, ni update)
-    global food, total_food, game_over, pause, win 
+    global food, total_food, game_over, pause, win, data_file
 
     # si je veux fullscreen sans pouvoir en sortir :    screen.surface = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)
 
@@ -319,8 +319,12 @@ def draw_game(): # ce qui est dans le draw, ne doit que draw. On peut mettre des
 
     # ____________ Game Over Screen ____________
     if player.life == 0 :
+        if not game_over :
+            data_file = open(r"data/hiscore.dat", "a")
+            data_file.write(str(score)+ "\n")
+
         game_over = True
-    
+
         screen.clear()  #si je veux que tout s'efface, y compris le background et tout l'affichage
         #background_img = pygame.image.load('nasa_asteroid_1024x614.jpg').convert_alpha()
         #screen.blit(background_img, (0.0))
@@ -329,9 +333,24 @@ def draw_game(): # ce qui est dans le draw, ne doit que draw. On peut mettre des
         gameover_img.draw() 
 
         screen.draw.text('G a m e  O v e r', center=(WIDTH/2, (HEIGHT/2 - 200)), color="red", gcolor="yellow", owidth=0.30, ocolor="white", fontsize=150, fontname = "rh-shmatter")
-        # put Highscore when Highscore.dat has been implemented
+    
+
+        data_file = open(r"data/hiscore.dat")
+        hiscore_list = data_file.readlines()
+        data_file.close()
+
+        hiscore = -1000000000000
+        for line in hiscore_list:
+            if line:
+                s = int(line.strip())
+                if s > hiscore:
+                    hiscore = s
+
+            screen.draw.text('Highscore: ' + str(hiscore), center=(WIDTH/2, (HEIGHT/2-310)), color="gold2", gcolor="darkgoldenrod", owidth=0.25, ocolor="grey", fontsize=70)
+
         screen.draw.text('Score: ' + str(score), center=(WIDTH/2, (HEIGHT/2-380)), color="gold", gcolor="darkgoldenrod", owidth=0.25, ocolor="grey", fontsize=70)
         gameover_img.pos = [WIDTH/2, (HEIGHT/2 + 100)]
+
 
 
     # ____________ Win Screen ____________
@@ -362,6 +381,8 @@ def draw():
     
     else :
         draw_game()
+
+    
 
 
 def random_pos():
@@ -465,12 +486,12 @@ def enemy_update(dt):
             enemy_action_trigger_speed = [-enemy_action_trigger_maxspeed,0]
             enemy_action_trigger.pos = [WIDTH -66, HEIGHT-player.height]
             
-        if enemy.pos[1] >= HEIGHT -10:
+        if enemy.pos[1] >= (HEIGHT-15):
             enemy_list.remove(enemy)
 
 
 def enemy_action_trigger_update(dt):
-    global enemy_action_trigger, enemy_action_trigger_speed, enemy_action_trigger_visible, enemy_action_trigger_time, ROTATION_SPEED
+    global enemy_action_trigger, enemy_action_trigger_speed, enemy_action_trigger_visible, enemy_action_trigger_time, ROTATION_SPEED, score, streak
 
     mvt_x = enemy_action_trigger_speed[0] * dt
     mvt_y = enemy_action_trigger_speed[1] * dt
@@ -482,6 +503,9 @@ def enemy_action_trigger_update(dt):
         #enemy_action_trigger_visible = False  would make it disappear too abruptly
         sounds.slap_umph.play()
         set_player_hit_angry()
+
+        #don't put the malus score -= here otherwise the wrench rotating will decrease player.life to 0
+
         enemy_action_trigger_speed = [0, enemy_action_trigger_maxspeed]
         enemy_action.move_back(-132)  #important de le mettre ici sinon il reste en dehors de l'écran !
         
@@ -502,9 +526,6 @@ def update_game(dt):
         if music.is_playing('neocrey_jump_to_win'):
             music.stop()
             sounds.icy_game_over.play()    #or this_is_game_over
-        data_file = open(r"data/hiscore.dat", "a")
-        data_file.write(str(score))
-        data_file.close()
         return
     
     if win :
